@@ -1,0 +1,14 @@
+# Python caches
+__pycache__/
+.pytest_cache/
+
+# Test output - regenerated on every run
+logs/
+reports/
+
+# Personal editor settings
+.vscode/
+
+# Practice files - keep only the round 2 tests
+learning/*
+!learning/test_round2_*.py

@@ -1,0 +1,50 @@
+# test_single_corrupt.py - step 5d / REQ-007 vs REQ-011: ONE damaged frame must not cause "signal lost"
+import time
+import config
+import frames
+
+
+def read_lines_for(dashboard, seconds):
+    lines = []
+    end = time.time() + seconds
+    while time.time() < end:
+        line = dashboard.readline().decode(errors="ignore").strip()
+        if line:
+            lines.append(line)
+    return lines
+
+
+def one_bad_in_16(speed):
+    msgs = frames.speed_frames(speed)
+    msgs[5].data[7] = (msgs[5].data[7] + 1) & 0xFF   # only the ctr 5 frame is damaged
+    return msgs
+
+
+def test_single_corrupt_frame_no_false_lost(can_bus, dashboard):
+    # One task from the start: no restart = no counter jump (ctr keeps cycling 0..15)
+    task = can_bus.send_periodic(one_bad_in_16(0x32), config.CYCLE_TIME_S)
+    time.sleep(1)                      # warm-up: Dashboard takes its reference
+    dashboard.reset_input_buffer()     # throw away warm-up lines
+    # Test: one damaged frame every 1.6 s, for 16 s (~10 damaged frames)
+    lines = read_lines_for(dashboard, 16.0)
+    task.stop()
+
+    cs_err = [l for l in lines if "CHECKSUM ERROR" in l]
+    ctr_err = [l for l in lines if "COUNTER ERROR" in l]
+    lost = [l for l in lines if "SPEED SIGNAL LOST" in l]
+    restored = [l for l in lines if "RESTORED" in l]
+    speed = [l for l in lines if l.startswith("Speed = 50")]
+
+    print(f"\nDamaged frames seen: {len(cs_err)}")
+    print(f"COUNTER ERRORs (v0.5 expects 0): {len(ctr_err)}")
+    print(f"Speed lines: {len(speed)}")
+    print(f"LOST: {len(lost)}   RESTORED: {len(restored)}")
+    for l in lost:
+        print("  ", l)
+
+    # 1) Sanity: did we really inject the fault?
+    assert len(cs_err) >= 8, f"only {len(cs_err)} damaged frames seen - fault not injected"
+    # 2) v0.5 / REQ-011 v3: a single damaged frame must NOT cause any COUNTER ERROR
+    assert len(ctr_err) == 0, f"{len(ctr_err)} COUNTER ERRORs after single damaged frames"
+    # 3) Requirement: one damaged frame must NOT cause a timeout
+    assert len(lost) == 0, f"false LOST {len(lost)} times out of {len(cs_err)} damaged frames"
