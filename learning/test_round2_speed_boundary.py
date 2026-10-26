@@ -29,7 +29,7 @@ def read_line_for(dashboard, seconds):
 
 @pytest.mark.parametrize("raw, expected", CASES, ids=IDS)
 def test_speed_boundary(can_bus, dashboard, raw, expected):
-    task = can_bus.send_periodic(frames.speed_frames(raw), config.CYCLE_TIME_S)
+    task = can_bus.send_periodic(frames.speed_frames(raw, strict=False), config.CYCLE_TIME_S)   # crosses the 250 boundary on purpose
     time.sleep(1)
     dashboard.reset_input_buffer()
     lines = read_line_for(dashboard, 1.0)

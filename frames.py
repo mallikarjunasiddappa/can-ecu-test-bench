@@ -18,10 +18,9 @@ def speed_frame(speed, counter):
     data[7] = checksum(data)
     return can.Message(arbitration_id=config.SPEED_MSG_ID, data=data, is_extended_id=False)
 
-
-def speed_frames(speed):
-    """16 frames with counter 0..15 - send_periodic sends them one by one, in a loop."""
-    return [speed_frame(speed, c) for c in range(16)]
+def speed_frames(speed, strict=True):
+    """16 frames with counter 0..15, built from vehicle.dbc - send_periodic sends them one by one, in a loop."""
+    return [speed_frame_dbc(speed, c, strict) for c in range(16)]
 
 def speed_frame_dbc(speed, counter, strict=True):
     """Same frame as speed_frame(), but built from vehicle.dbc by signal name."""

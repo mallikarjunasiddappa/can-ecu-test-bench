@@ -67,7 +67,7 @@ manual checks and not part of this code.)
 | `config.py` | All bench settings in one place (ports, bitrate, IDs, timing limits, expected ECU version) |
 | `conftest.py` | Fixtures: `dashboard` (serial port, handles Arduino auto-reset, captures boot banner) and `can_bus` (python-can slcan bus) with clean teardown |
 | `vehicle.dbc` | DBC for the bench network: nodes, message 0x123 `VehicleSpeed_Msg` (AliveCounter, VehicleSpeed 0–250 km/h, Checksum) and named values 254 `Error` / 255 `NotAvailable` |
-| `frames.py` | Builds valid 0x123 frames: `checksum()`, `speed_frame(speed, counter)`, `speed_frames(speed)` → 16 frames for `send_periodic`; `speed_frame_dbc(speed, counter, strict=True)` builds the same frame from `vehicle.dbc` by signal name (`strict=False` for fault injection, e.g. speed 251) |
+| `frames.py` | Builds valid 0x123 frames: `checksum()`, `speed_frame(speed, counter)` (hand-built), `speed_frames(speed, strict=True)` → 16 DBC-built frames for `send_periodic`; `speed_frame_dbc(speed, counter, strict=True)` builds the same frame from `vehicle.dbc` by signal name (`strict=False` for fault injection, e.g. speed 251) |
 | `requirements.txt` | Pinned versions: pytest 9.1.1, pytest-html 4.2.0, pyserial 3.5, python-can 4.6.1 |
 
 ## Tests
@@ -111,7 +111,7 @@ purpose to prove the test can fail with a clear message, then restored.
 ## Results so far
 
 - 26 test cases in the test-case workbook: **19 Pass, 0 Fail, 7 Not Run** (wiring-fault, .asc logging and bus-side checks still to do).
-- Last regressions on Dashboard v0.5: Setup A **17 passed**, Setup B **5 passed**.
+- Last regressions on Dashboard v0.5: Setup A **59 passed** (incl. round 2 + DBC tests, 2026-10-26, DBC-built frames), Setup B **5 passed** (before the DBC switch — re-run pending).
 - **3 product defects found by these tests and closed after retest:**
   - **DEF-001** — no timeout detection, stale speed stayed on screen → fixed in v0.2.
   - **DEF-002** — 0xFB–0xFF shown as real speeds → range check in v0.3.
@@ -148,7 +148,7 @@ Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 
 - No pytest markers for setups yet; ports hard-coded in `config.py`.
 - Function-scoped fixtures → ~2 s Arduino reset per test.
-- Bench tests still build frames with `speed_frame()`; switching them to `speed_frame_dbc()` is next.
+- `speed_frames()` builds every frame from `vehicle.dbc` (since 2026-10-26; Setup A regression after the switch: 59 passed). Two hand-built helpers remain on purpose: the fake sender in `test_e2e_tolerance_v05.py` and the frozen counter in `test_stuck_counter.py` (`speed_frame()`).
 - The E2E checksum is a plain byte sum: it cannot detect bytes in the wrong position (shown by the DBC red check). Production E2E profiles use a CRC.
 - No `.asc` trace per run (REQ-008) — planned.
 - UDS diagnostics, LIN and real vehicle ECUs are out of scope so far.

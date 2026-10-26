@@ -12,7 +12,7 @@ NUMBER_SHOWN = re.compile(r"Speed = \d+ km/h")   # matches e.g. "Speed = 255 km/
 
 @pytest.mark.parametrize("raw", INVALID_SPEEDS)
 def test_dashboard_rejects_invalid_speed(can_bus, dashboard, raw):
-    msg = frames.speed_frames(raw)   # counter + checksum (REQ-011/012)
+    msg = frames.speed_frames(raw, strict=False)   # fault injection: invalid values on purpose (REQ-010)
     task = can_bus.send_periodic(msg, config.CYCLE_TIME_S)
     time.sleep(1)
     dashboard.reset_input_buffer()
