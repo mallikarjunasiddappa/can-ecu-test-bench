@@ -1,3 +1,4 @@
+cantools==43.0.2
 pytest==9.1.1
 pytest-html==4.2.0
 pyserial==3.5
