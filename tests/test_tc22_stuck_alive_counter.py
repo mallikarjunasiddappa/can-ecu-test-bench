@@ -1,4 +1,18 @@
-# test_stuck_counter.py - step 5d / REQ-011 + REQ-007: a stuck alive counter is detected, counts as "no frame", recovery afterwards
+"""TC-22 - A frozen (stuck) alive counter is detected, treated as "no frame", then recovery
+
+Requirement: REQ-011 (alive counter), REQ-007 (timeout)
+Purpose   : a sender whose software hangs can keep repeating its last frame. The checksum is
+            still correct, so only the alive counter can reveal it.
+Setup     : A - Arduino #1 OFF; Python sends 0x123.
+Fault injection: phase 2 repeats ONE valid frame (counter 5, built from the DBC) every 100 ms.
+Steps     : Phase 1: normal frames -> read 1 s.
+            Phase 2: frozen counter 5 -> read 1.5 s.
+            Phase 3: normal frames (counter restarts at 0) -> read 1.5 s.
+Pass when : - speed shown in phase 1
+            - phase 2: at least 10 COUNTER ERROR lines, at most one leading speed line, exactly
+              one LOST at 301-350 ms, no RESTORED while still frozen
+            - phase 3: resync error "expected 6, got 0", then RESTORED and "Speed = 50 km/h"
+"""
 import re
 import time
 import config
@@ -24,7 +38,7 @@ def test_stuck_counter_detected_then_recovery(can_bus, dashboard):
 
     # Phase 2: frozen sender - the SAME frame (counter 5, correct checksum) every 100 ms
     task.stop()
-    task = can_bus.send_periodic(frames.speed_frame(0x32, 5), config.CYCLE_TIME_S)
+    task = can_bus.send_periodic(frames.speed_frame_dbc(0x32, 5), config.CYCLE_TIME_S)
     during = read_lines_for(dashboard, 1.5)
 
     # Phase 3: good frames again (counter starts at 0)

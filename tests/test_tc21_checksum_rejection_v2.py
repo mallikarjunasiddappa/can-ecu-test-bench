@@ -1,3 +1,17 @@
+"""TC-21 v2 - Only damaged frames: every one is rejected, LOST exactly once (round 2, test 3)
+
+Requirement: REQ-012 (checksum), REQ-007 (rejected frames do not reset the timeout)
+Purpose   : independent re-test of TC-21 written from the requirement. Also checks that the
+            Dashboard reports exactly the damage that was injected.
+Setup     : A - Arduino #1 OFF; Python sends 0x123.
+Fault injection: every frame's checksum + 1.
+Steps     : 1. Good frames 1 s, clear buffer.
+            2. Damaged frames only, read 1.5 s.
+Pass when : - at least 10 CHECKSUM ERROR lines, no speed line after the first error
+            - exactly one LOST at 301-350 ms after the last GOOD frame
+            - the first error line shows byte 7 = expected + 1 (the exact injected fault)
+Notes     : event vs state - CHECKSUM ERROR is printed per frame (event), LOST only once (state).
+"""
 import config
 import time
 import re

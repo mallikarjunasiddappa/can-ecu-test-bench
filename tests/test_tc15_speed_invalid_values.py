@@ -1,4 +1,18 @@
-# test_speed_invalid.py - TC-15 / REQ-010: invalid or out-of-range speed must not be displayed as a number
+"""TC-15 - Invalid or out-of-range speed is never displayed as a number
+
+Requirement: REQ-010 - 0-250 valid; 251-253 out of range; 0xFE = error; 0xFF = not available
+Purpose   : safety - a wrong value must never look like a real speed to the driver.
+Setup     : A - Arduino #1 OFF; Python sends 0x123.
+Data      : 251, 253, 0xFE, 0xFF (one test per value)
+Fault injection: frames built with strict=False, because vehicle.dbc forbids 251-253
+            (cantools would raise EncodeError and nothing would be sent).
+Steps     : 1. Send the invalid value every 100 ms for 1 s.
+            2. Clear the serial buffer, read 5 lines.
+Pass when : - no line matches "Speed = <number> km/h"
+            - at least one "SPEED SIGNAL INVALID" line
+History   : Run 1 on Dashboard v0.2 failed 4/4 -> DEF-002 (0xFB-0xFF shown as real speeds);
+            fixed in v0.3 (MAX_VALID_SPEED = 250).
+"""
 import re
 import time
 import can

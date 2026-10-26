@@ -1,4 +1,19 @@
-# test_e2e_tolerance_v05.py - DEF-003 fix (REQ-011 v3): "+1 or +2 once, right after a CHECKSUM ERROR"
+"""TC-24, TC-25, TC-26 - Limits of the DEF-003 fix (REQ-011 v3 tolerance)
+
+Requirement: REQ-011 v3 - right after a CHECKSUM ERROR the next frame may be +1 OR +2 (once);
+             REQ-012; REQ-007
+Purpose   : the DEF-003 fix relaxed the counter check. These tests prove the relaxation is
+            not a hole: it tolerates exactly one damaged frame and nothing more.
+Setup     : A - Arduino #1 OFF; Python plays the real ECU (50 km/h) AND the fake (100 km/h).
+            The fake is a second send task (one frame per 1.6 s, built from the DBC), started
+            0.55 s after the real one so it lands between counter 5 and 6.
+TC-24     : two damaged frames in a row (counters 5 and 6) -> one LOST per event, recovery.
+TC-25     : one damaged frame + fake with a wrong counter (13) -> fake rejected
+            ("expected 5 or 6, got 13"), never displayed.
+TC-26     : one damaged frame + "lucky" fake with counter 6 -> accepted as reference once,
+            the real frame 6 is rejected, the fake value is still never displayed, no LOST.
+Pass when : see the asserts in each test; in all three, "Speed = 100" never appears.
+"""
 # TC-24 two damaged in a row -> LOST (option A) | TC-25 damaged + fake wrong ctr | TC-26 damaged + lucky fake
 # Setup A: Arduino #1 OFF - Python plays the real ECU AND the fake
 import time
@@ -28,7 +43,7 @@ def run(can_bus, dashboard, damaged, fake_ctr=None, seconds=16.0):
     fake = None
     if fake_ctr is not None:
         time.sleep(0.55)                             # ctr 5 leaves at 0.5 s, ctr 6 at 0.6 s -> fake lands between
-        fake = can_bus.send_periodic(frames.speed_frame(100, fake_ctr), 1.6)   # one fake per 16-frame loop
+        fake = can_bus.send_periodic(frames.speed_frame_dbc(100, fake_ctr), 1.6)   # one fake per 16-frame loop
     time.sleep(1)                                    # warm-up
     dashboard.reset_input_buffer()
     lines = read_lines_for(dashboard, seconds)

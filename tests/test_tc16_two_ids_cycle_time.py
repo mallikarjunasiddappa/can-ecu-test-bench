@@ -1,4 +1,17 @@
-# test_two_senders.py - Step 4 / Exp A: two senders with different IDs share the bus
+"""TC-16 - Two message IDs share the bus without disturbing 0x123
+
+Requirement: REQ-002 (0x123 cycle 100 ms +-10 %), REQ-007 (no false LOST), REQ-003 (speed shown)
+Purpose   : on a real bus many ECUs send at once. A second, lower-priority ID (0x200) must not
+            delay 0x123 outside its cycle time or make the Dashboard lose the signal.
+Setup     : B - Arduino #1 ON (sends 0x123); Python sends 0x200 via the CANable in the 2nd run.
+Runs      : "baseline" (only Arduino #1) and "with_0x200" (Python adds 0x200 every 100 ms).
+Steps     : 1. Drain old frames (they queued while the dashboard fixture waited 2 s).
+            2. Listen 5 s, keep the arrival time of every 0x123 frame.
+Pass when : - at least 45 frames of 0x123
+            - every gap 90-110 ms (first gap ignored)
+            - no "SPEED SIGNAL LOST", and "Speed = 50 km/h" shown
+History   : Runs 1-2 failed = TEST defect (about 20 stale buffered frames) -> drain added.
+"""
 import time
 import can
 import pytest

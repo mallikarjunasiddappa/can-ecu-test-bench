@@ -1,3 +1,17 @@
+"""REQ-011 - A skipped frame (counter jump 6 -> 8) is detected, isolated and recovered (round 2, test 4)
+
+Requirement: REQ-011 v3 (alive counter); REQ-007 (no LOST: valid frames keep arriving)
+Purpose   : a lost frame on the bus shows up as a counter jump. The Dashboard must report it,
+            blank the display briefly, and recover after 2 good frames - without a false LOST.
+Setup     : A - Arduino #1 OFF; Python sends 0x123.
+Fault injection: the counter-7 frame is removed from every 16-frame cycle (one jump per 1.5 s).
+Steps     : 1. Start the skipping sender, settle 1 s, clear buffer.
+            2. Read 3 s.
+Pass when : - 1-3 COUNTER ERROR lines, all "expected 7, got 8" (15 -> 0 is NOT an error)
+            - no LOST, no CHECKSUM ERROR
+            - the line after each COUNTER ERROR is "Speed = 50 km/h" (frame 9 silent, 10 shown)
+            - at least 20 speed lines (display not frozen)
+"""
 import config
 import time
 import re

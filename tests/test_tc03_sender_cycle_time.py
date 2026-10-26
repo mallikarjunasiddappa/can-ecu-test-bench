@@ -1,3 +1,16 @@
+"""TC-03 (short) - The sender ECU transmits 0x123 every 100 ms +-10 %
+
+Requirement: REQ-002 - VehicleSpeed cycle time 100 ms +-10 % (90-110 ms)
+Purpose   : cycle time is one of the most common CAN tests. A late or drifting sender makes
+            receivers time out or show stale values.
+Setup     : B - Arduino #1 ON (data-grade cable - see ENV-003); Python only listens.
+Steps     : 1. Drain old frames. 2. Listen 5 s, keep the timestamp of every 0x123.
+Pass when : - at least 45 frames
+            - every gap 90-110 ms
+            - average gap 95-105 ms (ASSUMPTION: drift check; REQ-002 limits single gaps only)
+History   : first run "0 frames" -> ENV-003 (sender silent on a charge-only cable); the
+            3-minute version of TC-03 is cycle_check.py (manual).
+"""
 import time
 import config
 

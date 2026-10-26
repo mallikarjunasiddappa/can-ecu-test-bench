@@ -1,3 +1,18 @@
+"""TC-04 - A speed change (50 -> 100 km/h) is shown immediately, without errors
+
+Requirement: REQ-003 (speed decoding)
+Purpose   : a real speed changes constantly. A new value must replace the old one at once, and a
+            value change must not be mistaken for an error.
+Setup     : A - Arduino #1 OFF; Python sends 0x123.
+Steps     : 1. Send 50 km/h, settle 1 s, clear buffer, read 1 s ("before").
+            2. task.modify_data(100 km/h) - same task, so counter and timing continue.
+            3. Read 1.5 s ("after").
+Pass when : - at least 8 lines, all "Speed = 50 km/h" before
+            - 100 km/h appears with at most 1 old line in between
+            - no CHECKSUM / COUNTER ERROR, LOST or RESTORED
+            - once 100, always 100 (at least 10 lines)
+ASSUMPTION: REQ-003 has no response time -> 2 frames (200 ms) used; raised with the requirement owner.
+"""
 import config
 import time
 import frames

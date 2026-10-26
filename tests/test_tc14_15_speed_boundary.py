@@ -1,3 +1,17 @@
+"""TC-14 / TC-15 - The exact boundary between valid and invalid speed (round 2, test 6)
+
+Requirement: REQ-010 - 0-250 valid, 251-253 out of range, 0xFE error, 0xFF not available
+Purpose   : 250 / 251 is the pair that catches both off-by-one bugs (">= 250" and "> 251").
+            Checks the EXACT line the Dashboard prints, not just "a number or not".
+Setup     : A - Arduino #1 OFF; Python sends 0x123.
+Data      : 249, 250 (valid) and 251, 253, 0xFE, 0xFF (invalid), each with its expected line.
+Fault injection: strict=False, because vehicle.dbc forbids 251-253.
+Steps     : send the value 1 s, clear buffer, read 1 s.
+Pass when : - at least 8 lines, every line exactly the expected one
+            - an invalid value is never shown as a number
+Notes     : requirement review - REQ-010 names two meanings (error / not available) but defines
+            one reaction.
+"""
 import re
 import time
 import pytest

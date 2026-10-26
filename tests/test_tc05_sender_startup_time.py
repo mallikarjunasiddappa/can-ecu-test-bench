@@ -1,3 +1,19 @@
+"""TC-05 - The sender ECU starts transmitting within 2 s after power-up
+
+Requirement: REQ-004 - after power-up, 0x123 within 2 s
+Purpose   : receivers start their timeout clocks at power-up; a slow sender would cause a LOST
+            warning at every ignition.
+Setup     : SPECIAL - Arduino #1 on the PC USB (data cable) = COM6 (config SENDER_PORT);
+            Dashboard UNPLUGGED; CANable COM5 open first so frames get an ACK.
+Steps     : 1. Drain old frames.
+            2. t0 = open the sender's COM port (DTR resets the Arduino = "power-on").
+            3. t1 = first 0x123 that left after the reset; then count frames for 1 s.
+Pass when : - first frame within 2.0 s
+            - first frame is fresh and valid: counter 0, speed 0x32, correct checksum
+            - at least 8 frames in the next 1 s (cyclic sending started)
+ASSUMPTION: a reset via the COM port is not a true power cycle (the bootloader waits first), so
+            the measured time (about 1.50 s) is a worst case.
+"""
 import time
 import serial
 import config

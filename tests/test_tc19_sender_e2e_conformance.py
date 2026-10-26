@@ -1,4 +1,15 @@
-# test_sender_e2e.py - Step 5: Arduino #1 (sender v0.2) follows REQ-011 (alive counter) + REQ-012 (checksum)
+"""TC-19 - The sender ECU (Arduino #1, v0.2) follows the E2E rules
+
+Requirement: REQ-011 (alive counter +1 per frame, 15 -> 0) and REQ-012 (checksum in byte 7)
+Purpose   : test the SENDER side - before testing how the Dashboard reacts to E2E errors, prove
+            the real sender produces correct counters and checksums.
+Setup     : B - Arduino #1 ON; Python only listens (no Dashboard needed).
+Steps     : 1. Drain old frames, then record every 0x123 for 3 s (about 30 frames).
+Pass when : - at least 27 frames
+            - every checksum = (byte 0 + ... + byte 6) & 0xFF
+            - every counter = previous + 1 (mod 16)
+            - at least one rollover 15 -> 0 seen
+"""
 import time
 import config
 

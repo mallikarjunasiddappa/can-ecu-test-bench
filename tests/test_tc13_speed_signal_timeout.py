@@ -1,4 +1,18 @@
-# test_tc13_timeout.py - TC-13 / REQ-007: Dashboard must detect loss of 0x123
+"""TC-13 - Dashboard detects the loss of the VehicleSpeed message (0x123)
+
+Requirement: REQ-007 - no 0x123 for more than 300 ms (3 cycles) = signal lost
+Purpose   : a dashboard must never keep showing an old speed when the sender ECU disappears.
+Setup     : A - Arduino #1 OFF; Python plays the sender ECU via the CANable.
+Steps     : 1. Sender alive: send 50 km/h for 1 s, then read 1 s ("before").
+            2. Sender lost: stop sending, read 2 s ("during").
+            3. Sender back: send again, read 1 s ("after").
+Pass when : - "Speed = 50 km/h" shown before
+            - exactly ONE "SPEED SIGNAL LOST" line, reported after 301-350 ms
+            - no stale "Speed =" line after LOST
+            - "SPEED SIGNAL RESTORED" and "Speed = 50 km/h" after the sender returns
+History   : Run 1 on Dashboard v0.1 failed -> DEF-001 (no timeout detection, stale speed);
+            fixed in v0.2. Measured LOST time is 301 ms on every run.
+"""
 import re
 import time
 import can

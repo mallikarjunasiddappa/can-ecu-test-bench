@@ -1,4 +1,15 @@
-# test_speed_values.py - REQ-003: byte 1 of 0x123 = vehicle speed, 1 km/h per bit
+"""TC-14 - Speed decoding: every valid value is displayed exactly as sent
+
+Requirement: REQ-003 - byte 1 of 0x123 = vehicle speed, 1 km/h per bit (valid 0-250, REQ-010)
+Purpose   : boundary-value test of the decoding - the smallest values, typical values and the
+            last valid value must all reach the display unchanged.
+Setup     : A - Arduino #1 OFF; Python sends 0x123.
+Data      : 0, 1, 50, 100, 249, 250 (one test per value, parametrize)
+Steps     : 1. Send the value every 100 ms for 1 s.
+            2. Clear the serial buffer, read 5 lines.
+Pass when : "Speed = <value> km/h" is among the lines (expected value calculated from the input).
+History   : 254/255 were in the list until REQ-010 made them special values -> changed to 249/250.
+"""
 import time
 import can
 import pytest

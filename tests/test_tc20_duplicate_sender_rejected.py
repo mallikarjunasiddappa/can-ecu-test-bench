@@ -1,4 +1,18 @@
-# test_duplicate_id.py - Exp B (v0.3: risk shown) -> step 5d (v0.4): a SECOND sender of 0x123 must be DETECTED, never displayed
+"""TC-20 - A second sender of 0x123 is detected and its value never displayed
+
+Requirement: REQ-011 / REQ-012 (E2E) and REQ-007
+Purpose   : a CAN ID says WHAT a message is, not WHO sent it. A faulty or fake node sending
+            the same ID must not reach the display. E2E protection (counter + checksum) must
+            expose it.
+Setup     : B - Arduino #1 ON sends 50 km/h; Python sends a fake 100 km/h on the same ID.
+Runs      : "bad_e2e"  - naive fake: counter 0, checksum 0 (hand-built on purpose)
+            "good_e2e" - smart fake: correct checksum and its own counter (built from the DBC)
+Steps     : 1. Drain old frames, start the fake, read the Dashboard continuously for 5 s.
+Pass when : - "Speed = 100 km/h" never appears
+            - at least 25 CHECKSUM ERROR + COUNTER ERROR lines (the conflict is reported)
+History   : TC-17 on v0.3 showed the risk (both values displayed). Limitation: OBS-002 - a fake
+            that copies the next counter exactly is accepted for one frame (needs SecOC).
+"""
 import re
 import time
 import can

@@ -1,3 +1,18 @@
+"""TC-13 (recovery) - After LOST, the Dashboard recovers correctly and reports the real gap
+
+Requirement: REQ-007 (LOST / RESTORED), REQ-011 v3 (display only after 2 good frames)
+Purpose   : the recovery half of a timeout: the RESTORED message must come first, the speed must
+            come back, and the reported "missing for N ms" must match the real gap.
+Setup     : A - Arduino #1 OFF; Python sends 0x123.
+Steps     : 1. Sender alive 1 s, clear buffer.
+            2. Stop the sender, note the time, read 2 s -> exactly one LOST.
+            3. Measure the real gap, restart the sender, read 1.5 s ("after").
+Pass when : - exactly one RESTORED, before the first speed line
+            - at least 10 "Speed = 50 km/h" lines, no COUNTER ERROR
+            - N in "missing for N ms" is within gap < N <= gap + 300 ms
+History   : first version failed (N 2436 ms vs window 2001-2300): the reading loop overran by up
+            to 1 s while the Dashboard was silent -> fixed by measuring the real gap.
+"""
 import re
 import config
 import frames

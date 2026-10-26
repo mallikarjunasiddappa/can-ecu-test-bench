@@ -1,4 +1,15 @@
-# test_single_corrupt.py - step 5d / REQ-007 vs REQ-011: ONE damaged frame must not cause "signal lost"
+"""TC-23 (long run) - ONE damaged frame must not cause a false "signal lost", over 160 s
+
+Requirement: REQ-007 vs REQ-011 v3
+Purpose   : rare timing faults only show up over many events. Same test as TC-23, ten times
+            longer (about 100 damaged frames) to catch a 1-2 % failure rate.
+Setup     : A - Arduino #1 OFF; Python sends 0x123. Not part of the quick regression (about 165 s).
+Fault injection: counter-5 frame with checksum + 1 in every 16-frame cycle.
+Steps     : 1. Warm-up 1 s. 2. Read 160 s.
+Pass when : at least 90 CHECKSUM ERROR lines, 0 COUNTER ERROR, 0 LOST.
+History   : FAILED on Dashboard v0.4 with LOST 2/100 -> DEF-003 (valid-frame gap ~300 ms = the
+            limit, decided by ~1 ms jitter). PASSES on v0.5 (0/100).
+"""
 import time
 import config
 import frames

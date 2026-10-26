@@ -1,4 +1,19 @@
-# test_single_corrupt.py - step 5d / REQ-007 vs REQ-011: ONE damaged frame must not cause "signal lost"
+"""TC-23 - ONE damaged frame must not cause a false "signal lost"
+
+Requirement: REQ-007 (timeout) vs REQ-011 v3 (+1 or +2 once, right after a CHECKSUM ERROR)
+Purpose   : a single bit error is normal on a real bus. The receiver must tolerate it - a false
+            LOST warning would alarm the driver for no reason.
+Setup     : A - Arduino #1 OFF; Python sends 0x123.
+Fault injection: in every 16-frame cycle only the counter-5 frame has checksum + 1
+            (one damaged frame every 1.6 s). One send task from the start, so the counter
+            never jumps.
+Steps     : 1. Warm-up 1 s, clear buffer. 2. Read 16 s (about 10 damaged frames).
+Pass when : - at least 8 CHECKSUM ERROR lines (the fault really happened)
+            - 0 COUNTER ERROR lines
+            - 0 LOST lines
+History   : the 160 s long run (test_tc23_single_damaged_frame_long_run.py) found DEF-003 on
+            v0.4 (false LOST 2/100) -> REQ-011 revised to v3 -> fixed in Dashboard v0.5.
+"""
 import time
 import config
 import frames

@@ -9,6 +9,5 @@ reports/
 # Personal editor settings
 .vscode/
 
-# Practice files - keep only the round 2 tests
-learning/*
-!learning/test_round2_*.py
+# Practice files (the round 2 tests moved to tests/ on 2026-10-26)
+learning/

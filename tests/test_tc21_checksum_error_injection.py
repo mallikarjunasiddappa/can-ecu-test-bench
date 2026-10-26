@@ -1,4 +1,18 @@
-# test_bad_checksum.py - step 5d / REQ-012 + REQ-007: corrupted frames are rejected, count as "no frame", recovery after 2 good frames
+"""TC-21 - Frames with a wrong checksum are rejected, treated as "no frame", then recovery
+
+Requirement: REQ-012 (checksum), REQ-007 (timeout), REQ-011 v3 (2 good frames to recover)
+Purpose   : a frame damaged between sender and receiver must never be displayed. Rejected
+            frames do not reset the timeout clock, so a stream of damaged frames ends in LOST.
+Setup     : A - Arduino #1 OFF; Python sends 0x123.
+Fault injection: every frame's checksum + 1 ("damaged on the way").
+Steps     : Phase 1: good frames 1 s -> read 1 s.
+            Phase 2: damaged frames -> read 1.5 s.
+            Phase 3: good frames again -> read 1.5 s.
+Pass when : - speed shown in phase 1
+            - phase 2: at least 10 CHECKSUM ERROR lines, no "Speed =" line, exactly one LOST
+              at 301-350 ms
+            - phase 3: RESTORED and "Speed = 50 km/h"
+"""
 import re
 import time
 import config

@@ -1,4 +1,14 @@
-# test_frames_helper.py - unit test of OUR test tool (frames.py) on a virtual bus - no hardware needed
+"""Unit test (no hardware) - the frame builder produces correct counters and checksums
+
+Purpose   : test the TEST TOOL. If frames.speed_frames() were wrong, every bench result would be
+            wrong too. Runs on python-can's virtual bus in about 2 s, so it can run anywhere (CI).
+Setup     : none - two virtual bus objects on the same channel ("selftest").
+Steps     : 1. Send frames.speed_frames(50) every 100 ms for 2 s on the virtual bus.
+            2. Receive them on the second virtual bus object.
+Pass when : - first frame is 00 32 00 00 00 00 00 32
+            - every checksum = sum of bytes 0-6 & 0xFF
+            - every counter = previous + 1 (mod 16), at least one rollover 15 -> 0
+"""
 import time
 import can
 import frames

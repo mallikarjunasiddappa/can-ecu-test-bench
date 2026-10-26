@@ -1,3 +1,16 @@
+"""TC-13 v2 - Timeout reaction time, written from the requirement text only (round 2, test 1)
+
+Requirement: REQ-007 - no 0x123 for more than 300 ms = signal lost
+Purpose   : independent re-test of TC-13, written by the owner from REQ-007 without looking at
+            the first version. Focus on the reaction time.
+Setup     : A - Arduino #1 OFF; Python sends 0x123.
+Steps     : 1. Sender alive 1 s, clear buffer, read 1 s ("before").
+            2. Stop the sender, read 1 s ("during").
+Pass when : - at least 8 "Speed = 50 km/h" lines before
+            - exactly one LOST line
+            - LOST reported after 301-350 ms (from config.TIMEOUT_MS)
+Red check : limit + 0 -> failed with "LOST after 301 ms (allowed 301-350)" = real reaction 301 ms.
+"""
 import can
 import config 
 import frames

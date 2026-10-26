@@ -73,38 +73,38 @@ manual checks and not part of this code.)
 
 ## Tests
 
-**`tests/` — regression suite (15 files, 53 test items + 1 long run)**
+**`tests/` — regression suite (15 files, 53 test items + 1 long run)** — file names follow `test_tc<ID>_<what_it_checks>.py`; every file starts with a header (requirement, purpose, setup, steps, pass criteria, history)
 
 | File | TC | What it proves |
 |---|---|---|
-| `test_smoke.py` | — | Dashboard boots with the expected firmware version |
-| `test_python_sender.py` | — | Python-sent 100 km/h is displayed |
-| `test_tc13_timeout.py` | TC-13 | Exactly one LOST at 300–350 ms, no stale speed, RESTORED |
-| `test_speed_values.py` | TC-14 | Boundary values 0, 1, 50, 100, 249, 250 displayed (parametrized) |
-| `test_speed_invalid.py` | TC-15 | 251, 253, 0xFE, 0xFF → INVALID, no number shown |
-| `test_frames_helper.py` | — | Tests the test tool itself on a virtual bus (no hardware) |
-| `test_frames_dbc.py` | — | Equivalence test, no hardware: DBC-built frames == hand-built frames for 7 speeds × 4 counters (28 cases). Red check with a wrong start bit in the DBC → 24 failed (speed 0 cannot reveal a wrong position) |
-| `test_two_senders.py` | TC-16 | 0x123 timing unaffected by a second ID on the bus |
-| `test_sender_e2e.py` | TC-19 | Sender ECU conformance: checksum, counter, rollover |
-| `test_duplicate_id.py` | TC-20 | A fake second sender of 0x123 is never displayed |
-| `test_bad_checksum.py` | TC-21 | Damaged checksums rejected → LOST → recovery |
-| `test_stuck_counter.py` | TC-22 | Frozen alive counter detected → LOST → resync |
-| `test_single_corrupt.py` | TC-23 | One damaged frame must NOT cause a false LOST |
-| `test_single_corrupt_long.py` | TC-23 long | Same over 160 s / 100 damaged frames (found DEF-003) |
-| `test_e2e_tolerance_v05.py` | TC-24..26 | Two damaged in a row; damaged + fake sender (wrong / "lucky" counter) |
+| `test_smoke_dashboard_boot.py` | — | Dashboard boots with the expected firmware version |
+| `test_support_python_sender_display.py` | — | Python-sent 100 km/h is displayed |
+| `test_tc13_speed_signal_timeout.py` | TC-13 | Exactly one LOST at 300–350 ms, no stale speed, RESTORED |
+| `test_tc14_speed_valid_values.py` | TC-14 | Boundary values 0, 1, 50, 100, 249, 250 displayed (parametrized) |
+| `test_tc15_speed_invalid_values.py` | TC-15 | 251, 253, 0xFE, 0xFF → INVALID, no number shown |
+| `test_unit_frames_counter_checksum.py` | — | Tests the test tool itself on a virtual bus (no hardware) |
+| `test_unit_dbc_frame_equivalence.py` | — | Equivalence test, no hardware: DBC-built frames == hand-built frames for 7 speeds × 4 counters (28 cases). Red check with a wrong start bit in the DBC → 24 failed (speed 0 cannot reveal a wrong position) |
+| `test_tc16_two_ids_cycle_time.py` | TC-16 | 0x123 timing unaffected by a second ID on the bus |
+| `test_tc19_sender_e2e_conformance.py` | TC-19 | Sender ECU conformance: checksum, counter, rollover |
+| `test_tc20_duplicate_sender_rejected.py` | TC-20 | A fake second sender of 0x123 is never displayed |
+| `test_tc21_checksum_error_injection.py` | TC-21 | Damaged checksums rejected → LOST → recovery |
+| `test_tc22_stuck_alive_counter.py` | TC-22 | Frozen alive counter detected → LOST → resync |
+| `test_tc23_single_damaged_frame.py` | TC-23 | One damaged frame must NOT cause a false LOST |
+| `test_tc23_single_damaged_frame_long_run.py` | TC-23 long | Same over 160 s / 100 damaged frames (found DEF-003) |
+| `test_tc24_26_e2e_tolerance.py` | TC-24..26 | Two damaged in a row; damaged + fake sender (wrong / "lucky" counter) |
 
-**`learning/test_round2_*.py` — tests written from the requirement text only (8 files, 13 items)**
+**Round 2 — tests written from the requirement text only (8 files, 13 items, also in `tests/`)**
 
 | File | Req | What it proves |
 |---|---|---|
-| `test_round2_timeout.py` | REQ-007 | LOST reaction time within limits (measured 301 ms) |
-| `test_round2_recovery.py` | REQ-007, REQ-011 | RESTORED only after 2 good frames; recovery time vs measured gap |
-| `test_round2_checksum.py` | REQ-012 | Only damaged frames → every one rejected, LOST once |
-| `test_round2_counter.py` | REQ-011 | Skipped counter → COUNTER ERROR, isolated, display recovers |
-| `test_round2_speed_change.py` | REQ-003 | 50 → 100 km/h change shown at once, no false errors (TC-04) |
-| `test_round2_speed_boundary.py` | REQ-010 | 249/250 valid vs 251/253/0xFE/0xFF invalid, exact expected line |
-| `test_round2_cycle_time.py` | REQ-002 | Every gap 90–110 ms, average drift check (measured 99.3–102.5 ms) |
-| `test_round2_startup.py` | REQ-004 | First frame after reset ≤ 2 s (measured 1.503 s, TC-05) |
+| `test_tc13_speed_signal_timeout_v2.py` | REQ-007 | LOST reaction time within limits (measured 301 ms) |
+| `test_tc13_signal_recovery_timing.py` | REQ-007, REQ-011 | RESTORED only after 2 good frames; recovery time vs measured gap |
+| `test_tc21_checksum_rejection_v2.py` | REQ-012 | Only damaged frames → every one rejected, LOST once |
+| `test_req011_counter_jump.py` | REQ-011 | Skipped counter → COUNTER ERROR, isolated, display recovers |
+| `test_tc04_speed_value_change.py` | REQ-003 | 50 → 100 km/h change shown at once, no false errors (TC-04) |
+| `test_tc14_15_speed_boundary.py` | REQ-010 | 249/250 valid vs 251/253/0xFE/0xFF invalid, exact expected line |
+| `test_tc03_sender_cycle_time.py` | REQ-002 | Every gap 90–110 ms, average drift check (measured 99.3–102.5 ms) |
+| `test_tc05_sender_startup_time.py` | REQ-004 | First frame after reset ≤ 2 s (measured 1.503 s, TC-05) |
 
 Every test was checked **green → red → green**: after it passed, the limit or the stimulus was broken on
 purpose to prove the test can fail with a clear message, then restored.
@@ -128,9 +128,9 @@ purpose to prove the test can fail with a clear message, then restored.
 ```bash
 pip install -r requirements.txt
 # edit config.py: CAN_CHANNEL (CANable) and DASHBOARD_PORT (Dashboard Arduino)
-python -m pytest tests/test_smoke.py -v                    # bench check
+python -m pytest tests/test_smoke_dashboard_boot.py -v                    # bench check
 python -m pytest tests -v -s                               # regression (see setups below)
-python -m pytest learning/test_round2_timeout.py -v -s     # one round 2 test
+python -m pytest tests/test_tc13_speed_signal_timeout_v2.py -v -s     # one round 2 test
 python -m pytest tests -v --html=reports/report.html       # HTML report
 ```
 
@@ -149,7 +149,7 @@ Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 
 - No pytest markers for setups yet; ports hard-coded in `config.py`.
 - Function-scoped fixtures → ~2 s Arduino reset per test.
-- `speed_frames()` builds every frame from `vehicle.dbc` (since 2026-10-26; Setup A regression after the switch: 59 passed). Two hand-built helpers remain on purpose: the fake sender in `test_e2e_tolerance_v05.py` and the frozen counter in `test_stuck_counter.py` (`speed_frame()`).
+- `speed_frames()` builds every frame from `vehicle.dbc` (since 2026-10-26; Setup A regression after the switch: 59 passed). Two hand-built helpers remain on purpose: the fake sender in `test_tc24_26_e2e_tolerance.py` and the frozen counter in `test_tc22_stuck_alive_counter.py` (`speed_frame()`).
 - The E2E checksum is a plain byte sum: it cannot detect bytes in the wrong position (shown by the DBC red check). Production E2E profiles use a CRC.
 - `.asc` traces are recorded by hand; automatic recording per test (REQ-008) is next. The CANable cannot record frames it sends itself (python-can slcan has no own-message receive), so Setup A traces need a second, listen-only interface (ordered).
 - UDS diagnostics, LIN and real vehicle ECUs are out of scope so far.
