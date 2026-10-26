@@ -66,12 +66,13 @@ manual checks and not part of this code.)
 |---|---|
 | `config.py` | All bench settings in one place (ports, bitrate, IDs, timing limits, expected ECU version) |
 | `conftest.py` | Fixtures: `dashboard` (serial port, handles Arduino auto-reset, captures boot banner) and `can_bus` (python-can slcan bus) with clean teardown |
-| `frames.py` | Builds valid 0x123 frames: `checksum()`, `speed_frame(speed, counter)`, `speed_frames(speed)` → 16 frames for `send_periodic` |
+| `vehicle.dbc` | DBC for the bench network: nodes, message 0x123 `VehicleSpeed_Msg` (AliveCounter, VehicleSpeed 0–250 km/h, Checksum) and named values 254 `Error` / 255 `NotAvailable` |
+| `frames.py` | Builds valid 0x123 frames: `checksum()`, `speed_frame(speed, counter)`, `speed_frames(speed)` → 16 frames for `send_periodic`; `speed_frame_dbc(speed, counter, strict=True)` builds the same frame from `vehicle.dbc` by signal name (`strict=False` for fault injection, e.g. speed 251) |
 | `requirements.txt` | Pinned versions: pytest 9.1.1, pytest-html 4.2.0, pyserial 3.5, python-can 4.6.1 |
 
 ## Tests
 
-**`tests/` — regression suite (14 files, 25 test items + 1 long run)**
+**`tests/` — regression suite (15 files, 53 test items + 1 long run)**
 
 | File | TC | What it proves |
 |---|---|---|
@@ -81,6 +82,7 @@ manual checks and not part of this code.)
 | `test_speed_values.py` | TC-14 | Boundary values 0, 1, 50, 100, 249, 250 displayed (parametrized) |
 | `test_speed_invalid.py` | TC-15 | 251, 253, 0xFE, 0xFF → INVALID, no number shown |
 | `test_frames_helper.py` | — | Tests the test tool itself on a virtual bus (no hardware) |
+| `test_frames_dbc.py` | — | Equivalence test, no hardware: DBC-built frames == hand-built frames for 7 speeds × 4 counters (28 cases). Red check with a wrong start bit in the DBC → 24 failed (speed 0 cannot reveal a wrong position) |
 | `test_two_senders.py` | TC-16 | 0x123 timing unaffected by a second ID on the bus |
 | `test_sender_e2e.py` | TC-19 | Sender ECU conformance: checksum, counter, rollover |
 | `test_duplicate_id.py` | TC-20 | A fake second sender of 0x123 is never displayed |
@@ -138,7 +140,7 @@ Two bench setups (chosen by hand — no pytest markers yet):
 | A | OFF — Python sends 0x123 via CANable | smoke, python_sender, tc13, speed_*, bad_checksum, stuck_counter, single_corrupt*, e2e_tolerance, most round 2 tests |
 | B | ON | two_senders, sender_e2e, duplicate_id, round2 cycle_time |
 | — | Sender on PC USB, Dashboard unplugged | round2 startup |
-| none | virtual bus | frames_helper |
+| none | virtual bus / no bus | frames_helper, frames_dbc |
 
 Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 
@@ -146,7 +148,8 @@ Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 
 - No pytest markers for setups yet; ports hard-coded in `config.py`.
 - Function-scoped fixtures → ~2 s Arduino reset per test.
-- No DBC file yet (signals defined in code) — next: own DBC with `cantools`.
+- Bench tests still build frames with `speed_frame()`; switching them to `speed_frame_dbc()` is next.
+- The E2E checksum is a plain byte sum: it cannot detect bytes in the wrong position (shown by the DBC red check). Production E2E profiles use a CRC.
 - No `.asc` trace per run (REQ-008) — planned.
 - UDS diagnostics, LIN and real vehicle ECUs are out of scope so far.
 - `firmware/` is a copy of the Arduino sketches; re-copy after a firmware change.
