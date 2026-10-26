@@ -68,6 +68,7 @@ manual checks and not part of this code.)
 | `conftest.py` | Fixtures: `dashboard` (serial port, handles Arduino auto-reset, captures boot banner) and `can_bus` (python-can slcan bus) with clean teardown |
 | `vehicle.dbc` | DBC for the bench network: nodes, message 0x123 `VehicleSpeed_Msg` (AliveCounter, VehicleSpeed 0–250 km/h, Checksum) and named values 254 `Error` / 255 `NotAvailable` |
 | `frames.py` | Builds valid 0x123 frames: `checksum()`, `speed_frame(speed, counter)` (hand-built), `speed_frames(speed, strict=True)` → 16 DBC-built frames for `send_periodic`; `speed_frame_dbc(speed, counter, strict=True)` builds the same frame from `vehicle.dbc` by signal name (`strict=False` for fault injection, e.g. speed 251) |
+| `analyze_trace.py` | Offline trace analysis: reads a Vector `.asc` trace (e.g. recorded with `python -m can.logger -i slcan -c COM5 -b 500000 -f logs/trace.asc`), decodes 0x123 with `vehicle.dbc` and checks checksum (REQ-012), alive counter (REQ-011) and cycle time 90–110 ms (REQ-002); exit code 1 if errors. Red checks on a damaged copy: 1 bad checksum → 1 error; + 1 deleted frame → 3 errors (CHECKSUM, COUNTER, GAP) |
 | `requirements.txt` | Pinned versions: pytest 9.1.1, pytest-html 4.2.0, pyserial 3.5, python-can 4.6.1 |
 
 ## Tests
@@ -150,6 +151,6 @@ Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 - Function-scoped fixtures → ~2 s Arduino reset per test.
 - `speed_frames()` builds every frame from `vehicle.dbc` (since 2026-10-26; Setup A regression after the switch: 59 passed). Two hand-built helpers remain on purpose: the fake sender in `test_e2e_tolerance_v05.py` and the frozen counter in `test_stuck_counter.py` (`speed_frame()`).
 - The E2E checksum is a plain byte sum: it cannot detect bytes in the wrong position (shown by the DBC red check). Production E2E profiles use a CRC.
-- No `.asc` trace per run (REQ-008) — planned.
+- `.asc` traces are recorded by hand; automatic recording per test (REQ-008) is next. The CANable cannot record frames it sends itself (python-can slcan has no own-message receive), so Setup A traces need a second, listen-only interface (ordered).
 - UDS diagnostics, LIN and real vehicle ECUs are out of scope so far.
 - `firmware/` is a copy of the Arduino sketches; re-copy after a firmware change.
