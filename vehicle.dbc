@@ -1,0 +1,10 @@
+VERSION "1.0"
+
+BU_: Tester SenderECU DashboardECU
+
+BO_ 291 VehicleSpeed_Msg: 8 SenderECU
+ SG_ AliveCounter : 0|8@1+ (1,0) [0|15] "" DashboardECU
+ SG_ VehicleSpeed : 8|8@1+ (1,0) [0|250] "km/h" DashboardECU
+ SG_ Checksum : 56|8@1+ (1,0) [0|255] "" DashboardECU
+
+VAL_ 291 VehicleSpeed 254 "Error" 255 "NotAvailable" ;

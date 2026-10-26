@@ -1,7 +1,11 @@
 # frames.py - builds 0x123 VehicleSpeed frames with alive counter (REQ-011) + checksum (REQ-012)
 import can
+import cantools
 import config
+from pathlib import Path
 
+DB = cantools.database.can.Database()
+DB.add_dbc_file(Path(__file__).parent / "vehicle.dbc")
 
 def checksum(data):
     """REQ-012: sum of bytes 0..6, keep only the last byte."""
@@ -18,3 +22,12 @@ def speed_frame(speed, counter):
 def speed_frames(speed):
     """16 frames with counter 0..15 - send_periodic sends them one by one, in a loop."""
     return [speed_frame(speed, c) for c in range(16)]
+
+def speed_frame_dbc(speed, counter, strict=True):
+    """Same frame as speed_frame(), but built from vehicle.dbc by signal name."""
+    msg = DB.get_message_by_name("VehicleSpeed_Msg")
+    signals = {"AliveCounter": counter % 16, "VehicleSpeed": speed, "Checksum": 0}
+    data = msg.encode(signals, strict=strict)
+    signals["Checksum"] = checksum(data)
+    data = msg.encode(signals, strict=strict)
+    return can.Message(arbitration_id=msg.frame_id, data=data, is_extended_id=False)
