@@ -30,3 +30,13 @@ def speed_frame_dbc(speed, counter, strict=True):
     signals["Checksum"] = checksum(data)
     data = msg.encode(signals, strict=strict)
     return can.Message(arbitration_id=msg.frame_id, data=data, is_extended_id=False)
+
+def decode_speed(data) -> dict[str, int]:
+    """Decode one 0x123 payload with vehicle.dbc -> raw numbers by signal name (no VAL_ names)."""
+    decoded = DB.get_message_by_name("VehicleSpeed_Msg").decode(bytes(data), decode_choices=False)
+    assert isinstance(decoded, dict), "0x123 decoded to an unexpected type"
+    result = {}
+    for name, value in decoded.items():
+        assert isinstance(value, (int, float)), f"{name} decoded to {value!r}, expected a number"
+        result[name] = int(value)
+    return result
