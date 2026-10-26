@@ -111,7 +111,7 @@ purpose to prove the test can fail with a clear message, then restored.
 ## Results so far
 
 - 26 test cases in the test-case workbook: **19 Pass, 0 Fail, 7 Not Run** (wiring-fault, .asc logging and bus-side checks still to do).
-- Last regressions on Dashboard v0.5: Setup A **59 passed** (incl. round 2 + DBC tests, 2026-10-26, DBC-built frames), Setup B **5 passed** (before the DBC switch — re-run pending).
+- Last regressions on Dashboard v0.5: Setup A **59 passed** (incl. round 2 + DBC tests, 2026-10-26, DBC-built frames), Setup B **6 passed** (2026-10-26, incl. round 2 cycle time; fake sender built from the DBC).
 - **3 product defects found by these tests and closed after retest:**
   - **DEF-001** — no timeout detection, stale speed stayed on screen → fixed in v0.2.
   - **DEF-002** — 0xFB–0xFF shown as real speeds → range check in v0.3.
