@@ -34,8 +34,8 @@ def read_lines_for(dashboard, seconds):
 def real_frames(damaged):
     msgs = frames.speed_frames(0x32)                 # real ECU: 50 km/h, ctr 0..15
     for c in damaged:
-        msgs[c] = frames.damage_checksum(msgs[c])
-    return msgs
+        return [frames.damage_checksum(m) if frames.decode_speed(m.data)["AliveCounter"] in damaged else m
+            for m in msgs]                            # damage the frames whose AliveCounter is in 'damaged'
 
 
 def run(can_bus, dashboard, damaged, fake_ctr=None, seconds=16.0):

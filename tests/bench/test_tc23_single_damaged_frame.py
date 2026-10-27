@@ -31,8 +31,8 @@ def read_lines_for(dashboard, seconds):
 
 def one_bad_in_16(speed):
     msgs = frames.speed_frames(speed)
-    msgs[5] = frames.damage_checksum(msgs[5])         # only the ctr 5 frame is damaged
-    return msgs
+    return [frames.damage_checksum(m) if frames.decode_speed(m.data)["AliveCounter"] == 5 else m
+        for m in msgs]                            # only the frame with AliveCounter 5 is damaged
 
 
 def test_single_corrupt_frame_no_false_lost(can_bus, dashboard):
