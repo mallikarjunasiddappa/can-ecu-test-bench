@@ -29,9 +29,8 @@ def read_line_for(dashboard, seconds):
 
 def test_counter_jump_detected(can_bus, dashboard):
     # Phase 1: skip sender from the start (no counter 7), let the Dashboard settle
-    skip_frames = [m for m in frames.speed_frames(50) if m.data[0] != 7]
-    # Red check: "!= 99" removes nothing -> all 16 frames, no jump -> 0 COUNTER ERROR -> criterion 1 must FAIL
-    #skip_frames = [m for m in frames.speed_frames(50) if m.data[0] != 99]
+    skip_frames = [m for m in frames.speed_frames(50) if frames.decode_speed(m.data)["AliveCounter"] != 7]
+    # Red check (done 2026-10-23): "!= 99" removes nothing -> no jump -> 0 COUNTER ERROR -> criterion 1 FAILED as expected
     task = can_bus.send_periodic(skip_frames, config.CYCLE_TIME_S)
     time.sleep(1)
     dashboard.reset_input_buffer()

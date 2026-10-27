@@ -56,14 +56,14 @@ def test_sender_startup_time(can_bus):
     # Criterion 1: first frame within 2 s
     assert first is not None and t1 is not None, "no 0x123 within 5 s after the reset"
     startup_s = t1 - t0
-    data = list(first.data)
-    print(f"\nstart-up {startup_s:.3f} s, first frame {[hex(b) for b in data]}, then {more} frames in 1 s")
+    d = frames.decode_speed(first.data)                     # by signal name, via vehicle.dbc
+    print(f"\nstart-up {startup_s:.3f} s, first frame {bytes(first.data).hex(' ')} = {d}, then {more} frames in 1 s")
     assert startup_s <= LIMIT_S, f"first 0x123 after {startup_s:.3f} s (limit {LIMIT_S} s)"
 
     # Criterion 2: a fresh, valid frame
-    assert data[0] == 0, f"first frame counter {data[0]}, expected 0 (not from the fresh start?)"
-    assert data[1] == 0x32, f"speed byte {data[1]:#04x}, expected 0x32"
-    assert data[7] == frames.checksum(data), f"checksum {data[7]:#04x}, expected {frames.checksum(data):#04x}"
+    assert d["AliveCounter"] == 0, f"first frame counter {d['AliveCounter']}, expected 0 (not from the fresh start?)"
+    assert d["VehicleSpeed"] == 50, f"speed {d['VehicleSpeed']} km/h, expected 50"
+    assert d["Checksum"] == frames.checksum(first.data), f"checksum {d['Checksum']}, expected {frames.checksum(first.data)}"
 
     # Criterion 3: cyclic sending has begun
     assert more >= 8, f"only {more} frames in the 1 s after the first"
