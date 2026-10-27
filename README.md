@@ -116,7 +116,7 @@ purpose to prove the test can fail with a clear message, then restored.
 ## Results so far
 
 - 26 test cases in the test-case workbook: **19 Pass, 0 Fail, 7 Not Run** (wiring-fault, .asc logging and bus-side checks still to do).
-- Last regressions on Dashboard v0.5: Setup A **59 passed** (incl. round 2 + DBC tests, 2026-10-26, DBC-built frames), Setup B **6 passed** (2026-10-26, incl. round 2 cycle time; fake sender built from the DBC).
+- **Full regression 2026-10-27 after the DBC migration: 82 / 82 passed** — Setup A + unit 74 (251.6 s), Setup B 6 (48.4 s), TC-05 start-up 1 (1.505 s), TC-23 long run 1 (165.1 s). Every test builds and checks 0x123 through `vehicle.dbc` by signal name; no test reads or writes a byte position.
 - **3 product defects found by these tests and closed after retest:**
   - **DEF-001** — no timeout detection, stale speed stayed on screen → fixed in v0.2.
   - **DEF-002** — 0xFB–0xFF shown as real speeds → range check in v0.3.
@@ -154,7 +154,7 @@ Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 
 - No pytest markers for setups yet; ports hard-coded in `config.py`.
 - Function-scoped fixtures → ~2 s Arduino reset per test.
-- `speed_frames()` builds every frame from `vehicle.dbc` (since 2026-10-26; Setup A regression after the switch: 59 passed). Two hand-built helpers remain on purpose: the fake sender in `test_tc24_26_e2e_tolerance.py` and the frozen counter in `test_tc22_stuck_alive_counter.py` (`speed_frame()`).
+- One hand-built frame remains on purpose: the naive fake (`counter 0, checksum 0`) in TC-20, which must break the DBC rules; `speed_frame()` stays only as the reference in the DBC equivalence unit test.
 - The E2E checksum is a plain byte sum: it cannot detect bytes in the wrong position (shown by the DBC red check). Production E2E profiles use a CRC.
 - `.asc` traces are recorded by hand; automatic recording per test (REQ-008) is next. The CANable cannot record frames it sends itself (python-can slcan has no own-message receive), so Setup A traces need a second, listen-only interface (ordered).
 - UDS diagnostics, LIN and real vehicle ECUs are out of scope so far.
