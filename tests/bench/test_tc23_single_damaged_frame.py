@@ -31,7 +31,7 @@ def read_lines_for(dashboard, seconds):
 
 def one_bad_in_16(speed):
     msgs = frames.speed_frames(speed)
-    msgs[5].data[7] = (msgs[5].data[7] + 1) & 0xFF   # only the ctr 5 frame is damaged
+    msgs[5] = frames.damage_checksum(msgs[5])         # only the ctr 5 frame is damaged
     return msgs
 
 

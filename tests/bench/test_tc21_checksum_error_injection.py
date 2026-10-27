@@ -31,9 +31,7 @@ def read_lines_for(dashboard, seconds):
 
 def bad_checksum_frames(speed):
     msgs = frames.speed_frames(speed)
-    for m in msgs:
-        m.data[7] = (m.data[7] + 1) & 0xFF      # checksum off by one = "damaged on the way"
-    return msgs
+    return [frames.damage_checksum(m) for m in msgs]      # checksum + 1 on every frame = "damaged on the way"
 
 
 def test_bad_checksum_rejected_then_recovery(can_bus, dashboard):

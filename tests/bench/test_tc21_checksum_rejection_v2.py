@@ -28,9 +28,7 @@ def read_line_for(dashboard, seconds):
 
 def bad_checksum_frames(speed):
     messages = frames.speed_frames(speed)
-    for msg in messages:
-        msg.data[7] = (msg.data[7] + 1) & 0xFF
-    return messages
+    return [frames.damage_checksum(msg) for msg in messages]
 
 def test_checksum_rejected(can_bus, dashboard):
     # Phase 1: good frames -> speed shown

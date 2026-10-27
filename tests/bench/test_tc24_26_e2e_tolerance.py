@@ -34,7 +34,7 @@ def read_lines_for(dashboard, seconds):
 def real_frames(damaged):
     msgs = frames.speed_frames(0x32)                 # real ECU: 50 km/h, ctr 0..15
     for c in damaged:
-        msgs[c].data[7] = (msgs[c].data[7] + 1) & 0xFF
+        msgs[c] = frames.damage_checksum(msgs[c])
     return msgs
 
 
