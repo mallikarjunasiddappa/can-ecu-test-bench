@@ -67,14 +67,16 @@ manual checks and not part of this code.)
 | `config.py` | All bench settings in one place (ports, bitrate, IDs, timing limits, expected ECU version) |
 | `conftest.py` | Fixtures: `dashboard` (serial port, handles Arduino auto-reset, captures boot banner) and `can_bus` (python-can slcan bus) with clean teardown |
 | `vehicle.dbc` | DBC for the bench network: nodes, message 0x123 `VehicleSpeed_Msg` (AliveCounter, VehicleSpeed 0–250 km/h, Checksum) and named values 254 `Error` / 255 `NotAvailable` |
-| `frames.py` | Builds valid 0x123 frames: `checksum()`, `speed_frame(speed, counter)` (hand-built), `speed_frames(speed, strict=True)` → 16 DBC-built frames for `send_periodic`; `speed_frame_dbc(speed, counter, strict=True)` builds the same frame from `vehicle.dbc` by signal name (`strict=False` for fault injection, e.g. speed 251) |
+| `frames.py` | Builds valid 0x123 frames (and `damage_checksum(frame)`: fault injection by signal name): `checksum()`, `speed_frame(speed, counter)` (hand-built), `speed_frames(speed, strict=True)` → 16 DBC-built frames for `send_periodic`; `speed_frame_dbc(speed, counter, strict=True)` builds the same frame from `vehicle.dbc` by signal name (`strict=False` for fault injection, e.g. speed 251) |
 | `analyze_trace.py` | Offline trace analysis: reads a Vector `.asc` trace (e.g. recorded with `python -m can.logger -i slcan -c COM5 -b 500000 -f logs/trace.asc`), decodes 0x123 with `vehicle.dbc` and checks checksum (REQ-012), alive counter (REQ-011) and cycle time 90–110 ms (REQ-002); exit code 1 if errors. Red checks on a damaged copy: 1 bad checksum → 1 error; + 1 deleted frame → 3 errors (CHECKSUM, COUNTER, GAP) |
-| `pytest.ini` | `testpaths = tests`: plain `python -m pytest` collects only `tests/` (67 items), never stray practice files |
+| `pytest.ini` | `testpaths = tests`: plain `python -m pytest` collects only `tests/` (82 items), never stray practice files |
 | `requirements.txt` | Pinned versions: pytest 9.1.1, pytest-html 4.2.0, pyserial 3.5, python-can 4.6.1 |
 
 ## Tests
 
-**`tests/` — regression suite (15 files, 53 test items + 1 long run)** — file names follow `test_tc<ID>_<what_it_checks>.py`; every file starts with a header (requirement, purpose, setup, steps, pass criteria, history)
+**Test layout:** `tests/unit/` = no hardware (3 files, 44 items, ~2 s — `python -m pytest tests/unit`), `tests/bench/` = needs the CAN bench (21 files). All 82 items: `python -m pytest`.
+
+**Regression suite (15 files, 53 test items + 1 long run)** — file names follow `test_tc<ID>_<what_it_checks>.py`; every file starts with a header (requirement, purpose, setup, steps, pass criteria, history)
 
 | File | TC | What it proves |
 |---|---|---|
@@ -85,6 +87,7 @@ manual checks and not part of this code.)
 | `test_tc15_speed_invalid_values.py` | TC-15 | 251, 253, 0xFE, 0xFF → INVALID, no number shown |
 | `test_unit_frames_counter_checksum.py` | — | Tests the test tool itself on a virtual bus (no hardware) |
 | `test_unit_dbc_frame_equivalence.py` | — | Equivalence test, no hardware: DBC-built frames == hand-built frames for 7 speeds × 4 counters (28 cases). Red check with a wrong start bit in the DBC → 24 failed (speed 0 cannot reveal a wrong position) |
+| `test_unit_damage_checksum.py` | — | Unit test, no hardware: `frames.damage_checksum()` changes only the Checksum signal (+1, found via the DBC) for 5 speeds × 3 counters (15 cases). Red check `+ 0` → 15 failed |
 | `test_tc16_two_ids_cycle_time.py` | TC-16 | 0x123 timing unaffected by a second ID on the bus |
 | `test_tc19_sender_e2e_conformance.py` | TC-19 | Sender ECU conformance: checksum, counter, rollover |
 | `test_tc20_duplicate_sender_rejected.py` | TC-20 | A fake second sender of 0x123 is never displayed |
@@ -94,7 +97,7 @@ manual checks and not part of this code.)
 | `test_tc23_single_damaged_frame_long_run.py` | TC-23 long | Same over 160 s / 100 damaged frames (found DEF-003) |
 | `test_tc24_26_e2e_tolerance.py` | TC-24..26 | Two damaged in a row; damaged + fake sender (wrong / "lucky" counter) |
 
-**Round 2 — tests written from the requirement text only (8 files, 13 items, also in `tests/`)**
+**Round 2 — tests written from the requirement text only (8 files, 13 items, in `tests/bench/`)**
 
 | File | Req | What it proves |
 |---|---|---|
@@ -129,9 +132,10 @@ purpose to prove the test can fail with a clear message, then restored.
 ```bash
 pip install -r requirements.txt
 # edit config.py: CAN_CHANNEL (CANable) and DASHBOARD_PORT (Dashboard Arduino)
-python -m pytest tests/test_smoke_dashboard_boot.py -v                    # bench check
-python -m pytest tests -v -s                               # regression (see setups below)
-python -m pytest tests/test_tc13_speed_signal_timeout_v2.py -v -s     # one round 2 test
+python -m pytest tests/bench/test_smoke_dashboard_boot.py -v                    # bench check
+python -m pytest tests/unit                                # no-hardware tests, ~2 s
+python -m pytest tests/bench -v -s                         # bench regression (see setups below)
+python -m pytest tests/bench/test_tc13_speed_signal_timeout_v2.py -v -s     # one round 2 test
 python -m pytest tests -v --html=reports/report.html       # HTML report
 ```
 
