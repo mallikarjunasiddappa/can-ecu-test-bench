@@ -17,6 +17,9 @@ History   : the 160 s long run (test_tc23_single_damaged_frame_long_run.py) foun
 import time
 import config
 import frames
+import pytest
+
+pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
 
 
 def read_lines_for(dashboard, seconds):

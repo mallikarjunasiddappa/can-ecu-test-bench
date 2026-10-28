@@ -11,6 +11,8 @@ Pass when : same ID, bytes 0-6 unchanged, byte 7 = good checksum + 1 (wraps 255 
 import pytest
 import frames
 
+pytestmark = pytest.mark.unit                              # no hardware
+
 
 @pytest.mark.parametrize("speed", [0, 50, 250, 251, 255])
 @pytest.mark.parametrize("counter", [0, 5, 15])

@@ -17,6 +17,8 @@ from udsoncan.connections import PythonIsoTpConnection
 from udsoncan.exceptions import NegativeResponseException
 from uds.ecu_server import EcuServer, REQUEST_ID, RESPONSE_ID
 
+pytestmark = pytest.mark.unit                              # no hardware
+
 
 @pytest.fixture
 def uds_client():

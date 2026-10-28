@@ -148,27 +148,34 @@ Next: DTCs (0x19 / 0x14) linked to the 0x123 timeout, security access (0x27), se
 ```bash
 pip install -r requirements.txt
 # edit config.py: CAN_CHANNEL (CANable) and DASHBOARD_PORT (Dashboard Arduino)
-python -m pytest tests/bench/test_smoke_dashboard_boot.py -v                    # bench check
-python -m pytest tests/unit                                # no-hardware tests, ~2 s
-python -m pytest tests/bench -v -s                         # bench regression (see setups below)
-python -m pytest tests/bench/test_tc13_speed_signal_timeout_v2.py -v -s     # one round 2 test
-python -m pytest tests -v --html=reports/report.html       # HTML report
+python -m pytest -m unit                         # no hardware: DBC, frame builder, UDS simulator (60 tests, ~3 s)
+python -m pytest -m smoke                        # bench check: Dashboard boots with the expected firmware
+python -m pytest -m "setup_a and not long"       # Setup A quick regression (30 tests)
+python -m pytest -m setup_b                      # Setup B (6 tests)
+python -m pytest -m special                      # TC-05 start-up (special wiring, see its header)
+python -m pytest -m long                         # TC-23 long run (160 s)
+python -m pytest -m unit -v --html=reports/report.html   # HTML report (any selection)
 ```
 
-Two bench setups (chosen by hand — no pytest markers yet):
+Every test file carries a marker (`pytestmark = …`), registered in `pytest.ini` with `--strict-markers`
+(a typo in a marker name is an error, not a silently empty run):
 
-| Setup | Sender ECU | Used by |
+| Marker | Bench setup | Tests |
 |---|---|---|
-| A | OFF — Python sends 0x123 via CANable | smoke, python_sender, tc13, speed_*, bad_checksum, stuck_counter, single_corrupt*, e2e_tolerance, most round 2 tests |
-| B | ON | two_senders, sender_e2e, duplicate_id, round2 cycle_time |
-| — | Sender on PC USB, Dashboard unplugged | round2 startup |
-| none | virtual bus / no bus | frames_helper, frames_dbc |
+| `unit` | none — pure Python / virtual CAN bus | 60 |
+| `setup_a` | Arduino #1 OFF — Python sends 0x123 via the CANable | 31 (incl. smoke and the long run) |
+| `setup_b` | Arduino #1 ON | 6 |
+| `special` | Arduino #1 on PC USB (COM6), Dashboard unplugged | 1 (TC-05) |
+| `long` | Setup A, > 1 min | 1 (TC-23 long run) |
+| `smoke` | Setup A | 1 |
+
+unit + setup_a + setup_b + special = 98 = all tests.
 
 Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 
 ## Known limitations / next steps
 
-- No pytest markers for setups yet; ports hard-coded in `config.py`.
+- Ports hard-coded in `config.py`.
 - Function-scoped fixtures → ~2 s Arduino reset per test.
 - One hand-built frame remains on purpose: the naive fake (`counter 0, checksum 0`) in TC-20, which must break the DBC rules; `speed_frame()` stays only as the reference in the DBC equivalence unit test.
 - The E2E checksum is a plain byte sum: it cannot detect bytes in the wrong position (shown by the DBC red check). Production E2E profiles use a CRC.

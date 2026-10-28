@@ -10,8 +10,10 @@ Steps     : 1. The `dashboard` fixture opens the serial port (this resets the Ar
 Pass when : the boot text contains "Dashboard ECU <config.DASHBOARD_SW_VERSION>: MCP2515 ready".
 Notes     : "MCP2515 init FAILED" instead = SPI wiring problem (ENV-002 type).
 """
+import pytest
 import config
 
+pytestmark = [pytest.mark.setup_a, pytest.mark.smoke]         # bench check, Setup A
 
 def test_dashboard_boots_with_expected_version(dashboard):
     print(dashboard.boot_text)

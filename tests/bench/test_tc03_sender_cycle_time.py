@@ -13,6 +13,9 @@ History   : first run "0 frames" -> ENV-003 (sender silent on a charge-only cabl
 """
 import time
 import config
+import pytest
+
+pytestmark = pytest.mark.setup_b                           # Arduino #1 ON
 
 DURATION_S = 5
 MIN_MS, MAX_MS = 90, 110          # REQ-002: 100 ms ± 10 %

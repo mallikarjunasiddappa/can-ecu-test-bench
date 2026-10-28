@@ -12,6 +12,9 @@ Pass when : - first frame is 00 32 00 00 00 00 00 32
 import time
 import can
 import frames
+import pytest
+
+pytestmark = pytest.mark.unit                              # no hardware
 
 
 def test_speed_frames_counter_and_checksum():

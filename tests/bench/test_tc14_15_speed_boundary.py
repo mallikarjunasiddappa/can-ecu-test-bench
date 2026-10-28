@@ -18,6 +18,8 @@ import pytest
 import config
 import frames
 
+pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
+
 MAX_VALID_SPEED = 250                              # REQ-010: 0–250 valid
 NUMBER_SHOWN = re.compile(r"Speed = \d+ km/h")     # a number, NOT "Speed = --- km/h"
 

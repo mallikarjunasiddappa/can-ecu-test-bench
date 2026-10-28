@@ -18,6 +18,9 @@ import time
 import serial
 import config
 import frames
+import pytest
+
+pytestmark = pytest.mark.special                           # special wiring (see header)
 
 SENDER_PORT = "COM6"      # Arduino #1 on PC USB, socket 1-4, for THIS test only (not the Dashboard!)
 LIMIT_S = 2.0             # REQ-004: first 0x123 within 2 s after power-up

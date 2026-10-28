@@ -13,6 +13,9 @@ import time
 import can
 import config
 import frames
+import pytest
+
+pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
 
 
 def test_dashboard_shows_speed_sent_by_python(can_bus, dashboard):

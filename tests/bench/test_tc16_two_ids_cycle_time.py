@@ -17,6 +17,8 @@ import can
 import pytest
 import config
 
+pytestmark = pytest.mark.setup_b                           # Arduino #1 ON
+
 OTHER_ID = 0x200            # second sender (Python) - lower priority than 0x123
 DURATION_S = 5
 

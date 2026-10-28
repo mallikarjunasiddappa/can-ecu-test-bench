@@ -16,6 +16,8 @@ import pytest
 import config
 import frames
 
+pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
+
 SPEEDS = [0, 1, 50, 100, 249, 250]   # boundary values of one byte (0x00..0xFF) + typical values
 
 

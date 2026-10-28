@@ -20,6 +20,8 @@ import pytest
 import config
 import frames
 
+pytestmark = pytest.mark.setup_b                           # Arduino #1 ON
+
 DURATION_S = 5
 PYTHON_SPEED = 100      # Arduino #1 sends 50 km/h on 0x123; Python sends 100 km/h on the SAME ID
 

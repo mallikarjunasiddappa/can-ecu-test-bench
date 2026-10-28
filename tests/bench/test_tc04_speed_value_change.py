@@ -16,6 +16,9 @@ ASSUMPTION: REQ-003 has no response time -> 2 frames (200 ms) used; raised with 
 import config
 import time
 import frames
+import pytest
+
+pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
 
 def read_line_for(dashboard, seconds):
     lines = []

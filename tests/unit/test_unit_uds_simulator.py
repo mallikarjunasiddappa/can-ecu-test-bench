@@ -9,6 +9,8 @@ Pass when : every response is exactly the expected one.
 import pytest
 from uds.ecu_simulator import EcuSimulator
 
+pytestmark = pytest.mark.unit                              # no hardware
+
 CASES = [
     # request          expected response                                   rule
     ("22 F1 89",       "62 F1 89 30 2E 35"),                               # read software version "0.5"

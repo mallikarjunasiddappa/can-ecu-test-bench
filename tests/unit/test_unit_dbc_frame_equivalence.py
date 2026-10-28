@@ -12,6 +12,8 @@ Red check : VehicleSpeed start bit 8 -> 16 in the DBC gave 24 failed / 4 passed 
 import pytest
 import frames
 
+pytestmark = pytest.mark.unit                              # no hardware
+
 
 @pytest.mark.parametrize("speed", [0, 1, 50, 249, 250, 254, 255])
 @pytest.mark.parametrize("counter", [0, 1, 15, 16])

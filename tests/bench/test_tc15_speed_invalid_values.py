@@ -20,6 +20,8 @@ import pytest
 import config
 import frames
 
+pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
+
 INVALID_SPEEDS = [251, 253, 0xFE, 0xFF]          # out of range (251-253), error (0xFE), not available (0xFF)
 NUMBER_SHOWN = re.compile(r"Speed = \d+ km/h")   # matches e.g. "Speed = 255 km/h", NOT "Speed = --- km/h"
 

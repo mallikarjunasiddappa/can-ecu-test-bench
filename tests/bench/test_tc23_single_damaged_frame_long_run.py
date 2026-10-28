@@ -13,6 +13,9 @@ History   : FAILED on Dashboard v0.4 with LOST 2/100 -> DEF-003 (valid-frame gap
 import time
 import config
 import frames
+import pytest
+
+pytestmark = [pytest.mark.setup_a, pytest.mark.long]       # Setup A, 160 s - not in the quick regression
 
 
 def read_lines_for(dashboard, seconds):

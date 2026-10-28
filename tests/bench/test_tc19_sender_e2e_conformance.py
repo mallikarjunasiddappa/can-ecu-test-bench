@@ -13,6 +13,9 @@ Pass when : - at least 27 frames
 import time
 import config
 import frames
+import pytest
+
+pytestmark = pytest.mark.setup_b                           # Arduino #1 ON
 
 DURATION_S = 3      # ~30 frames = about 2 full counter cycles (0..15)
 

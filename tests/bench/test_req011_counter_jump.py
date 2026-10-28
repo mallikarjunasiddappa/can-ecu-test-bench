@@ -16,6 +16,9 @@ import config
 import time
 import re
 import frames
+import pytest
+
+pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
 
 # copy your read_line_for helper from test 3 here
 def read_line_for(dashboard, seconds):
