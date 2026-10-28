@@ -81,6 +81,7 @@ manual checks and not part of this code.)
 | File | TC | What it proves |
 |---|---|---|
 | `test_smoke_dashboard_boot.py` | — | Dashboard boots with the expected firmware version |
+| `test_tc02_message_id_and_dlc.py` | TC-02 | Sender ECU uses ID 0x123, DLC 8, standard 11-bit ID — expected values from `vehicle.dbc` (Setup B) |
 | `test_support_python_sender_display.py` | — | Python-sent 100 km/h is displayed |
 | `test_tc13_speed_signal_timeout.py` | TC-13 | Exactly one LOST at 300–350 ms, no stale speed, RESTORED |
 | `test_tc14_speed_valid_values.py` | TC-14 | Boundary values 0, 1, 50, 100, 249, 250 displayed (parametrized) |
@@ -151,7 +152,7 @@ pip install -r requirements.txt
 python -m pytest -m unit                         # no hardware: DBC, frame builder, UDS simulator (60 tests, ~3 s)
 python -m pytest -m smoke                        # bench check: Dashboard boots with the expected firmware
 python -m pytest -m "setup_a and not long"       # Setup A quick regression (30 tests)
-python -m pytest -m setup_b                      # Setup B (6 tests)
+python -m pytest -m setup_b                      # Setup B (7 tests)
 python -m pytest -m special                      # TC-05 start-up (special wiring, see its header)
 python -m pytest -m long                         # TC-23 long run (160 s)
 python -m pytest -m unit -v --html=reports/report.html   # HTML report (any selection)
@@ -164,12 +165,12 @@ Every test file carries a marker (`pytestmark = …`), registered in `pytest.ini
 |---|---|---|
 | `unit` | none — pure Python / virtual CAN bus | 60 |
 | `setup_a` | Arduino #1 OFF — Python sends 0x123 via the CANable | 31 (incl. smoke and the long run) |
-| `setup_b` | Arduino #1 ON | 6 |
+| `setup_b` | Arduino #1 ON | 7 |
 | `special` | Arduino #1 on PC USB (COM6), Dashboard unplugged | 1 (TC-05) |
 | `long` | Setup A, > 1 min | 1 (TC-23 long run) |
 | `smoke` | Setup A | 1 |
 
-unit + setup_a + setup_b + special = 98 = all tests.
+unit + setup_a + setup_b + special = 99 = all tests.
 
 Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 
