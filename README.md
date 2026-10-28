@@ -109,6 +109,7 @@ manual checks and not part of this code.)
 | `test_tc04_speed_value_change.py` | REQ-003 | 50 → 100 km/h change shown at once, no false errors (TC-04) |
 | `test_tc14_15_speed_boundary.py` | REQ-010 | 249/250 valid vs 251/253/0xFE/0xFF invalid, exact expected line |
 | `test_tc03_sender_cycle_time.py` | REQ-002 | Every gap 90–110 ms, average drift check (measured 99.3–102.5 ms) |
+| `test_tc03_sender_cycle_time_long_run.py` | REQ-002 | TC-03 over 3 min (about 1800 frames), 1 s warm-up for the start-up burst; outliers listed with time (Setup B, `long`) |
 | `test_tc05_sender_startup_time.py` | REQ-004 | First frame after reset ≤ 2 s (measured 1.503 s, TC-05) |
 
 Every test was checked **green → red → green**: after it passed, the limit or the stimulus was broken on
@@ -152,9 +153,10 @@ pip install -r requirements.txt
 python -m pytest -m unit                         # no hardware: DBC, frame builder, UDS simulator (60 tests, ~3 s)
 python -m pytest -m smoke                        # bench check: Dashboard boots with the expected firmware
 python -m pytest -m "setup_a and not long"       # Setup A quick regression (30 tests)
-python -m pytest -m setup_b                      # Setup B (7 tests)
+python -m pytest -m "setup_b and not long"       # Setup B (7 tests)
 python -m pytest -m special                      # TC-05 start-up (special wiring, see its header)
-python -m pytest -m long                         # TC-23 long run (160 s)
+python -m pytest -m "setup_a and long"           # TC-23 long run (160 s)
+python -m pytest -m "setup_b and long"           # TC-03 long run (3 min)
 python -m pytest -m unit -v --html=reports/report.html   # HTML report (any selection)
 ```
 
@@ -165,12 +167,12 @@ Every test file carries a marker (`pytestmark = …`), registered in `pytest.ini
 |---|---|---|
 | `unit` | none — pure Python / virtual CAN bus | 60 |
 | `setup_a` | Arduino #1 OFF — Python sends 0x123 via the CANable | 31 (incl. smoke and the long run) |
-| `setup_b` | Arduino #1 ON | 7 |
+| `setup_b` | Arduino #1 ON | 8 (incl. the TC-03 long run) |
 | `special` | Arduino #1 on PC USB (COM6), Dashboard unplugged | 1 (TC-05) |
-| `long` | Setup A, > 1 min | 1 (TC-23 long run) |
+| `long` | > 1 min | 2 (TC-23 long run, Setup A; TC-03 long run, Setup B) |
 | `smoke` | Setup A | 1 |
 
-unit + setup_a + setup_b + special = 99 = all tests.
+unit + setup_a + setup_b + special = 100 = all tests.
 
 Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 
