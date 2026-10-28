@@ -74,7 +74,7 @@ manual checks and not part of this code.)
 
 ## Tests
 
-**Test layout:** `tests/unit/` = no hardware (3 files, 44 items, ~2 s — `python -m pytest tests/unit`), `tests/bench/` = needs the CAN bench (21 files). All 82 items: `python -m pytest`.
+**Test layout:** `tests/unit/` = no hardware (5 files, 60 items, ~3 s — `python -m pytest tests/unit`), `tests/bench/` = needs the CAN bench (21 files). All 82 items: `python -m pytest`.
 
 **Regression suite (15 files, 53 test items + 1 long run)** — file names follow `test_tc<ID>_<what_it_checks>.py`; every file starts with a header (requirement, purpose, setup, steps, pass criteria, history)
 
@@ -126,6 +126,22 @@ purpose to prove the test can fail with a clear message, then restored.
   sender that mimics the next counter is accepted for one frame. Mitigation would be SecOC / an IDS rule.
 - Requirement gaps raised during test design: REQ-003 has no response time (test uses an assumption),
   REQ-004 "power-up" — reset via USB is not a true power cycle.
+
+## UDS diagnostics (ISO 14229) — ECU simulator, no hardware yet
+
+A small diagnostic ECU in Python, tested the way a workshop tester or test system talks to an ECU.
+
+| Layer | File | What it does |
+|---|---|---|
+| UDS logic | `uds/ecu_simulator.py` | `EcuSimulator.handle(request) -> response`: 0x10 DiagnosticSessionControl (default 01 / extended 03), 0x22 ReadDataByIdentifier (F189 software version, F190 VIN), 0x2E WriteDataByIdentifier (extended session only); NRC 0x11, 0x12, 0x13, 0x31, 0x7F |
+| Transport | `uds/ecu_server.py` | `EcuServer`: ISO-TP (ISO 15765-2) on CAN 0x7E0 (requests) / 0x7E8 (responses), padding 00, background thread |
+| Demo | `uds/demo_vin_over_isotp.py` | reads the VIN over a virtual CAN bus and prints every frame: single frame request, first frame `10 14`, flow control `30 08 00`, consecutive frames `21`, `22` |
+| Tests | `tests/unit/test_unit_uds_simulator.py` | 12 tests on the logic: positive / negative responses, session sequences, write + read back |
+| Tests | `tests/unit/test_unit_uds_client.py` | 4 end-to-end tests with a real UDS client (`udsoncan`) over ISO-TP on a virtual bus; refusals checked with `pytest.raises(NegativeResponseException)` and the NRC |
+
+Red checks: wrong positive SID (0x60) → 2 failed; session check removed → write in default accepted → 2 failed (logic) and "DID NOT RAISE NegativeResponseException" (client).
+
+Next: DTCs (0x19 / 0x14) linked to the 0x123 timeout, security access (0x27), session timeout + TesterPresent, then the same tests over the real CANable.
 
 ## How to run
 
