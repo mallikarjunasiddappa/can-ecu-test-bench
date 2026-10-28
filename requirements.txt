@@ -3,3 +3,5 @@ pytest==9.1.1
 pytest-html==4.2.0
 pyserial==3.5
 python-can==4.6.1
+can-isotp==2.0.7
+udsoncan==1.26.1
