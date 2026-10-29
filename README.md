@@ -69,12 +69,12 @@ manual checks and not part of this code.)
 | `vehicle.dbc` | DBC for the bench network: nodes, message 0x123 `VehicleSpeed_Msg` (AliveCounter, VehicleSpeed 0–250 km/h, Checksum) and named values 254 `Error` / 255 `NotAvailable` |
 | `frames.py` | Builds valid 0x123 frames (and `damage_checksum(frame)`: fault injection by signal name): `checksum()`, `speed_frame(speed, counter)` (hand-built), `speed_frames(speed, strict=True)` → 16 DBC-built frames for `send_periodic`; `speed_frame_dbc(speed, counter, strict=True)` builds the same frame from `vehicle.dbc` by signal name (`strict=False` for fault injection, e.g. speed 251) |
 | `analyze_trace.py` | Offline trace analysis: reads a Vector `.asc` trace (e.g. recorded with `python -m can.logger -i slcan -c COM5 -b 500000 -f logs/trace.asc`), decodes 0x123 with `vehicle.dbc` and checks checksum (REQ-012), alive counter (REQ-011) and cycle time 90–110 ms (REQ-002); exit code 1 if errors. Red checks on a damaged copy: 1 bad checksum → 1 error; + 1 deleted frame → 3 errors (CHECKSUM, COUNTER, GAP) |
-| `pytest.ini` | `testpaths = tests`: plain `python -m pytest` collects only `tests/` (101 items), never stray practice files |
+| `pytest.ini` | `testpaths = tests`: plain `python -m pytest` collects only `tests/` (103 items), never stray practice files |
 | `requirements.txt` | Pinned versions: pytest 9.1.1, pytest-html 4.2.0, pyserial 3.5, python-can 4.6.1 |
 
 ## Tests
 
-**Test layout:** `tests/unit/` = no hardware (5 files, 60 items, ~3 s — `python -m pytest tests/unit`), `tests/bench/` = needs the CAN bench (24 files, 41 items). All 101 items: `python -m pytest`.
+**Test layout:** `tests/unit/` = no hardware (5 files, 60 items, ~3 s — `python -m pytest tests/unit`), `tests/bench/` = needs the CAN bench (25 files, 43 items). All 103 items: `python -m pytest`.
 
 **Regression suite (15 files, 53 test items + 1 long run)** — file names follow `test_tc<ID>_<what_it_checks>.py`; every file starts with a header (requirement, purpose, setup, steps, pass criteria, history)
 
@@ -90,6 +90,7 @@ manual checks and not part of this code.)
 | `test_unit_dbc_frame_equivalence.py` | — | Equivalence test, no hardware: DBC-built frames == hand-built frames for 7 speeds × 4 counters (28 cases). Red check with a wrong start bit in the DBC → 24 failed (speed 0 cannot reveal a wrong position) |
 | `test_unit_damage_checksum.py` | — | Unit test, no hardware: `frames.damage_checksum()` changes only the Checksum signal (+1, found via the DBC) for 5 speeds × 3 counters (15 cases). Red check `+ 0` → 15 failed |
 | `test_tc16_two_ids_cycle_time.py` | TC-16 | 0x123 timing unaffected by a second ID on the bus |
+| `test_tc18_fake_sender_masks_lost_ecu.py` | TC-18 | The real ECU dies while a fake still sends 0x123: naive fake → LOST after 301 ms (E2E protects); smart fake (DBC-built) → 100 km/h shown, no warning (masking, OBS-002 on the bench) |
 | `test_tc19_sender_e2e_conformance.py` | TC-19 | Sender ECU conformance: checksum, counter, rollover |
 | `test_tc20_duplicate_sender_rejected.py` | TC-20 | A fake second sender of 0x123 is never displayed |
 | `test_tc21_checksum_error_injection.py` | TC-21 | Damaged checksums rejected → LOST → recovery |
@@ -127,6 +128,9 @@ purpose to prove the test can fail with a clear message, then restored.
     160 s long run) → requirement REQ-011 revised (v3) → v0.5 → long run 0/100.
 - **Open observation OBS-002:** E2E (counter + checksum) is a *safety* mechanism, not *security* — a
   sender that mimics the next counter is accepted for one frame. Mitigation would be SecOC / an IDS rule.
+  **Reproduced on the bench 2026-10-29 (TC-18):** when the real ECU dies, a DBC-built fake is trusted
+  for good (100 km/h ×31 in 3 s, no warning). While both sent, the conflict did raise LOST — the warning
+  disappears exactly when the real ECU dies.
 - **Open observation OBS-003 (TC-12, 2026-10-29):** after 10 s without an ACK the sender sends 3 stale
   queued frames back to back, in **reverse** order (counters e.g. 12, 11, 10 — MCP2515 sends TXB2 first),
   then a counter jump. 7 of 7 runs. Requirement question raised: should pending frames be aborted or
@@ -160,7 +164,7 @@ pip install -r requirements.txt
 # edit config.py: CAN_CHANNEL (CANable) and DASHBOARD_PORT (Dashboard Arduino)
 python -m pytest -m unit                         # no hardware: DBC, frame builder, UDS simulator (60 tests, ~3 s)
 python -m pytest -m smoke                        # bench check: Dashboard boots with the expected firmware
-python -m pytest -m "setup_a and not long"       # Setup A quick regression (30 tests)
+python -m pytest -m "setup_a and not long"       # Setup A quick regression (32 tests)
 python -m pytest -m "setup_b and not long"       # Setup B (7 tests)
 python -m pytest -m special -k tc05              # TC-05 start-up (special wiring, see its header)
 python -m pytest -m special -k tc12 -s           # TC-12 burst after ACK loss (Arduino #1 ON, Dashboard unplugged)
@@ -175,13 +179,13 @@ Every test file carries a marker (`pytestmark = …`), registered in `pytest.ini
 | Marker | Bench setup | Tests |
 |---|---|---|
 | `unit` | none — pure Python / virtual CAN bus | 60 |
-| `setup_a` | Arduino #1 OFF — Python sends 0x123 via the CANable | 31 (incl. smoke and the long run) |
+| `setup_a` | Arduino #1 OFF — Python sends 0x123 via the CANable | 33 (incl. smoke and the long run) |
 | `setup_b` | Arduino #1 ON | 8 (incl. the TC-03 long run) |
 | `special` | Dashboard unplugged; TC-05: Arduino #1 on PC USB (COM6); TC-12: Arduino #1 ON | 2 (TC-05, TC-12) — run one at a time |
 | `long` | > 1 min | 2 (TC-23 long run, Setup A; TC-03 long run, Setup B) |
 | `smoke` | Setup A | 1 |
 
-unit + setup_a + setup_b + special = 101 = all tests.
+unit + setup_a + setup_b + special = 103 = all tests.
 
 Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 
