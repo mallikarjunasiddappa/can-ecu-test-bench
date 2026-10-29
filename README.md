@@ -69,12 +69,12 @@ manual checks and not part of this code.)
 | `vehicle.dbc` | DBC for the bench network: nodes, message 0x123 `VehicleSpeed_Msg` (AliveCounter, VehicleSpeed 0–250 km/h, Checksum) and named values 254 `Error` / 255 `NotAvailable` |
 | `frames.py` | Builds valid 0x123 frames (and `damage_checksum(frame)`: fault injection by signal name): `checksum()`, `speed_frame(speed, counter)` (hand-built), `speed_frames(speed, strict=True)` → 16 DBC-built frames for `send_periodic`; `speed_frame_dbc(speed, counter, strict=True)` builds the same frame from `vehicle.dbc` by signal name (`strict=False` for fault injection, e.g. speed 251) |
 | `analyze_trace.py` | Offline trace analysis: reads a Vector `.asc` trace (e.g. recorded with `python -m can.logger -i slcan -c COM5 -b 500000 -f logs/trace.asc`), decodes 0x123 with `vehicle.dbc` and checks checksum (REQ-012), alive counter (REQ-011) and cycle time 90–110 ms (REQ-002); exit code 1 if errors. Red checks on a damaged copy: 1 bad checksum → 1 error; + 1 deleted frame → 3 errors (CHECKSUM, COUNTER, GAP) |
-| `pytest.ini` | `testpaths = tests`: plain `python -m pytest` collects only `tests/` (82 items), never stray practice files |
+| `pytest.ini` | `testpaths = tests`: plain `python -m pytest` collects only `tests/` (101 items), never stray practice files |
 | `requirements.txt` | Pinned versions: pytest 9.1.1, pytest-html 4.2.0, pyserial 3.5, python-can 4.6.1 |
 
 ## Tests
 
-**Test layout:** `tests/unit/` = no hardware (5 files, 60 items, ~3 s — `python -m pytest tests/unit`), `tests/bench/` = needs the CAN bench (21 files). All 82 items: `python -m pytest`.
+**Test layout:** `tests/unit/` = no hardware (5 files, 60 items, ~3 s — `python -m pytest tests/unit`), `tests/bench/` = needs the CAN bench (24 files, 41 items). All 101 items: `python -m pytest`.
 
 **Regression suite (15 files, 53 test items + 1 long run)** — file names follow `test_tc<ID>_<what_it_checks>.py`; every file starts with a header (requirement, purpose, setup, steps, pass criteria, history)
 
@@ -111,13 +111,14 @@ manual checks and not part of this code.)
 | `test_tc03_sender_cycle_time.py` | REQ-002 | Every gap 90–110 ms, average drift check (measured 99.3–102.5 ms) |
 | `test_tc03_sender_cycle_time_long_run.py` | REQ-002 | TC-03 over 3 min (about 1800 frames), 1 s warm-up for the start-up burst; outliers listed with time (Setup B, `long`) |
 | `test_tc05_sender_startup_time.py` | REQ-004 | First frame after reset ≤ 2 s (measured 1.503 s, TC-05) |
+| `test_tc12_startup_burst_after_ack_loss.py` | — (requirement gap) | TC-12: after 10 s without an ACK, at most 3 queued frames (MCP2515 TX buffers), then the 100 ms rhythm. The burst is found by short gaps **and** reverse counters, not by timing alone (special setup: Dashboard unplugged) → OBS-003 |
 
 Every test was checked **green → red → green**: after it passed, the limit or the stimulus was broken on
 purpose to prove the test can fail with a clear message, then restored.
 
 ## Results so far
 
-- 26 test cases in the test-case workbook: **19 Pass, 0 Fail, 7 Not Run** (wiring-fault, .asc logging and bus-side checks still to do).
+- 26 test cases in the test-case workbook: **20 Pass, 0 Fail, 6 Not Run** (wiring-fault, .asc logging and bus-side checks still to do).
 - **Full regression 2026-10-27 after the DBC migration: 82 / 82 passed** — Setup A + unit 74 (251.6 s), Setup B 6 (48.4 s), TC-05 start-up 1 (1.505 s), TC-23 long run 1 (165.1 s). Every test builds and checks 0x123 through `vehicle.dbc` by signal name; no test reads or writes a byte position.
 - **3 product defects found by these tests and closed after retest:**
   - **DEF-001** — no timeout detection, stale speed stayed on screen → fixed in v0.2.
@@ -126,6 +127,13 @@ purpose to prove the test can fail with a clear message, then restored.
     160 s long run) → requirement REQ-011 revised (v3) → v0.5 → long run 0/100.
 - **Open observation OBS-002:** E2E (counter + checksum) is a *safety* mechanism, not *security* — a
   sender that mimics the next counter is accepted for one frame. Mitigation would be SecOC / an IDS rule.
+- **Open observation OBS-003 (TC-12, 2026-10-29):** after 10 s without an ACK the sender sends 3 stale
+  queued frames back to back, in **reverse** order (counters e.g. 12, 11, 10 — MCP2515 sends TXB2 first),
+  then a counter jump. 7 of 7 runs. Requirement question raised: should pending frames be aborted or
+  discarded after an ACK loss?
+- **Flaky-test lesson (TC-12):** a first version found the burst by timing only (gap < 10 ms) and failed
+  once, when the first fresh frame came 4.7 ms after the burst. Fixed by also checking the frame content
+  (counter = previous − 1); 3/3 green afterwards, including a 0 → 15 wrap.
 - Requirement gaps raised during test design: REQ-003 has no response time (test uses an assumption),
   REQ-004 "power-up" — reset via USB is not a true power cycle.
 
@@ -154,7 +162,8 @@ python -m pytest -m unit                         # no hardware: DBC, frame build
 python -m pytest -m smoke                        # bench check: Dashboard boots with the expected firmware
 python -m pytest -m "setup_a and not long"       # Setup A quick regression (30 tests)
 python -m pytest -m "setup_b and not long"       # Setup B (7 tests)
-python -m pytest -m special                      # TC-05 start-up (special wiring, see its header)
+python -m pytest -m special -k tc05              # TC-05 start-up (special wiring, see its header)
+python -m pytest -m special -k tc12 -s           # TC-12 burst after ACK loss (Arduino #1 ON, Dashboard unplugged)
 python -m pytest -m "setup_a and long"           # TC-23 long run (160 s)
 python -m pytest -m "setup_b and long"           # TC-03 long run (3 min)
 python -m pytest -m unit -v --html=reports/report.html   # HTML report (any selection)
@@ -168,11 +177,11 @@ Every test file carries a marker (`pytestmark = …`), registered in `pytest.ini
 | `unit` | none — pure Python / virtual CAN bus | 60 |
 | `setup_a` | Arduino #1 OFF — Python sends 0x123 via the CANable | 31 (incl. smoke and the long run) |
 | `setup_b` | Arduino #1 ON | 8 (incl. the TC-03 long run) |
-| `special` | Arduino #1 on PC USB (COM6), Dashboard unplugged | 1 (TC-05) |
+| `special` | Dashboard unplugged; TC-05: Arduino #1 on PC USB (COM6); TC-12: Arduino #1 ON | 2 (TC-05, TC-12) — run one at a time |
 | `long` | > 1 min | 2 (TC-23 long run, Setup A; TC-03 long run, Setup B) |
 | `smoke` | Setup A | 1 |
 
-unit + setup_a + setup_b + special = 100 = all tests.
+unit + setup_a + setup_b + special = 101 = all tests.
 
 Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 
