@@ -44,6 +44,6 @@ def decode_speed(data) -> dict[str, int]:
 def damage_checksum(frame):
     """Fault injection: a copy of a 0x123 frame with Checksum + 1, changed by signal name via vehicle.dbc."""
     signals = decode_speed(frame.data)
-    signals["Checksum"] = (signals["Checksum"] + 1) & 0xFF
+    signals["Checksum"] = (signals["Checksum"] + 0) & 0xFF
     data = DB.get_message_by_name("VehicleSpeed_Msg").encode(signals, strict=False)
     return can.Message(arbitration_id=frame.arbitration_id, data=data, is_extended_id=False)
