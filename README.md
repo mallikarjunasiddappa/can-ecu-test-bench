@@ -190,6 +190,11 @@ unit + setup_a + setup_b + special = 103 = all tests.
 
 Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 
+**CI (GitHub Actions):** `.github/workflows/unit-tests.yml` runs `python -m pytest -m unit` (60 tests, ~3 s) on a fresh
+Ubuntu runner with Python 3.13 on every push to `main` and on every pull request; the badge at the top shows the
+latest result. Bench tests need the hardware and run locally. Red check (2026-10-30): a PR with `damage_checksum`
+adding 0 instead of 1 → 15 failed, exit code 1, check ❌ → PR closed without merge.
+
 ## Known limitations / next steps
 
 - Ports hard-coded in `config.py`.
