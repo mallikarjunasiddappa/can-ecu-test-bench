@@ -194,6 +194,8 @@ Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 Ubuntu runner with Python 3.13 on every push to `main` and on every pull request; the badge at the top shows the
 latest result. Bench tests need the hardware and run locally. Red check (2026-10-30): a PR with `damage_checksum`
 adding 0 instead of 1 → 15 failed, exit code 1, check ❌ → PR closed without merge.
+`main` is protected by a GitHub ruleset (`protect-main`): changes go through a pull request, and merging needs a
+green `unit` check; force pushes and deletion are blocked. The repository admin may bypass it (solo project).
 
 ## Known limitations / next steps
 
