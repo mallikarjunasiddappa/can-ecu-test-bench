@@ -1,4 +1,5 @@
 # CAN ECU Test Bench — pytest automation
+   [![Unit tests](https://github.com/mallikarjunasiddappa/can-ecu-test-bench/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/mallikarjunasiddappa/can-ecu-test-bench/actions/workflows/unit-tests.yml)
 
 Self-built home lab for **automotive CAN ECU testing**: a real 3-node CAN bus, two Arduino-based ECUs,
 and a **pytest + python-can + pyserial** framework that tests the "Dashboard ECU" against written
