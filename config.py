@@ -9,6 +9,10 @@ CAN_BITRATE = 500000          # 500 kbit/s
 DASHBOARD_PORT = "COM6"       # check in Device Manager if it changes
 DASHBOARD_BAUD = 115200       # must match Serial.begin(115200) in the sketch
 
+# Sender ECU (Arduino #1): USB serial port - only for tests that reset the sender (TC-05, TC-06)
+SENDER_PORT = "COM4"          # hub port 4 (location 1-3.4); opening it RESETS Arduino #1
+SENDER_BAUD = 115200
+
 # Message and timing (REQ-003, REQ-007)
 SPEED_MSG_ID = 0x123
 CYCLE_TIME_S = 0.100          # sender cycle: 100 ms
