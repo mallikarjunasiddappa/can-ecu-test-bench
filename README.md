@@ -126,7 +126,8 @@ purpose to prove the test can fail with a clear message, then restored.
 ## Results so far
 
 - 26 test cases in the test-case workbook: **25 Pass, 0 Fail, 1 Not Run** (still to do: TC-07 .asc logging — waits for the 2nd CANable).
-- **Full regression 2026-10-27 after the DBC migration: 82 / 82 passed** — Setup A + unit 74 (251.6 s), Setup B 6 (48.4 s), TC-05 start-up 1 (1.505 s), TC-23 long run 1 (165.1 s). Every test builds and checks 0x123 through `vehicle.dbc` by signal name; no test reads or writes a byte position.
+- **Full regression R5, 2026-10-31: 108 / 108 passed** (all 110 tests except the two hand-wired fault tests TC-11 / TC-10, which ran the same day): unit 60 (2.9 s), Setup B 13 (122.9 s), TC-03 long 1 (183.4 s, 1788 frames, 98.7–102.9 ms), TC-12 1 (burst 3: counters 4, 3, 2), Setup A 32 (273.8 s), TC-23 long 1 (165.4 s, 100 damaged, 0 counter errors, 0 LOST). Logs `logs/R5_*.txt`.
+- Earlier: **full regression 2026-10-27 after the DBC migration: 82 / 82 passed** — Setup A + unit 74 (251.6 s), Setup B 6 (48.4 s), TC-05 start-up 1 (1.505 s), TC-23 long run 1 (165.1 s). Every test builds and checks 0x123 through `vehicle.dbc` by signal name; no test reads or writes a byte position.
 - **3 product defects found by these tests and closed after retest:**
   - **DEF-001** — no timeout detection, stale speed stayed on screen → fixed in v0.2.
   - **DEF-002** — 0xFB–0xFF shown as real speeds → range check in v0.3.
