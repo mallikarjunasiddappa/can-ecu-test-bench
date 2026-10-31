@@ -117,7 +117,7 @@ manual checks and not part of this code.)
 | `test_tc14_15_speed_boundary.py` | REQ-010 | 249/250 valid vs 251/253/0xFE/0xFF invalid, exact expected line |
 | `test_tc03_sender_cycle_time.py` | REQ-002 | Every gap 90–110 ms, average drift check (measured 99.3–102.5 ms) |
 | `test_tc03_sender_cycle_time_long_run.py` | REQ-002 | TC-03 over 3 min (about 1800 frames), 1 s warm-up for the start-up burst; outliers listed with time (Setup B, `long`) |
-| `test_tc05_sender_startup_time.py` | REQ-004 | First frame after reset ≤ 2 s (measured 1.503 s, TC-05) |
+| `test_tc05_sender_startup_time.py` | REQ-004 | First frame after reset ≤ 2 s (measured 1.503 s; 1.501 s on 2026-10-31 after moving to the hub / `config.SENDER_PORT`, now Setup B) |
 | `test_tc12_startup_burst_after_ack_loss.py` | — (requirement gap) | TC-12: after 10 s without an ACK, at most 3 queued frames (MCP2515 TX buffers), then the 100 ms rhythm. The burst is found by short gaps **and** reverse counters, not by timing alone (special setup: Dashboard unplugged) → OBS-003 |
 
 Every test was checked **green → red → green**: after it passed, the limit or the stimulus was broken on
@@ -171,8 +171,7 @@ pip install -r requirements.txt
 python -m pytest -m unit                         # no hardware: DBC, frame builder, UDS simulator (60 tests, ~3 s)
 python -m pytest -m smoke                        # bench check: Dashboard boots with the expected firmware
 python -m pytest -m "setup_a and not long"       # Setup A quick regression (32 tests)
-python -m pytest -m "setup_b and not long"       # Setup B (12 tests)
-python -m pytest -m special -k tc05              # TC-05 start-up (special wiring, see its header)
+python -m pytest -m "setup_b and not long"       # Setup B (13 tests, incl. TC-05 and TC-06: they reset Arduino #1 via COM4)
 python -m pytest -m special -k tc12 -s           # TC-12 burst after ACK loss (Arduino #1 ON, Dashboard unplugged)
 python -m pytest -m special -k tc11 -s           # TC-11 fault: CAN-L wire OPEN at the CANable (power off to change it)
 python -m pytest -m special -k tc10 -s           # TC-10 fault: CAN-H / CAN-L SWAPPED at the CANable (power off to change it)
@@ -188,8 +187,8 @@ Every test file carries a marker (`pytestmark = …`), registered in `pytest.ini
 |---|---|---|
 | `unit` | none — pure Python / virtual CAN bus | 60 |
 | `setup_a` | Arduino #1 OFF — Python sends 0x123 via the CANable | 33 (incl. smoke and the long run) |
-| `setup_b` | Arduino #1 ON — since 2026-10-31 on the powered hub, port 4 = `config.SENDER_PORT` COM4 (TC-06 resets it through that port) | 13 (incl. the TC-03 long run) |
-| `special` | Dashboard unplugged; TC-05: Arduino #1 on PC USB (COM6); TC-12: Arduino #1 ON | 4 (TC-05, TC-12, TC-11 fault, TC-10 fault) — run one at a time; TC-11/TC-10 fault: wiring changed at the CANable |
+| `setup_b` | Arduino #1 ON — since 2026-10-31 on the powered hub, port 4 = `config.SENDER_PORT` COM4 (TC-06 resets it through that port) | 14 (incl. the TC-03 long run) |
+| `special` | wiring/setup changed by hand — TC-12: Dashboard unplugged; TC-11 / TC-10 fault: CAN-L open / H-L swapped at the CANable | 3 (TC-12, TC-11 fault, TC-10 fault) — run one at a time |
 | `long` | > 1 min | 2 (TC-23 long run, Setup A; TC-03 long run, Setup B) |
 | `smoke` | Setup A | 1 |
 

@@ -3,8 +3,8 @@
 Requirement: REQ-004 - after power-up, 0x123 within 2 s
 Purpose   : receivers start their timeout clocks at power-up; a slow sender would cause a LOST
             warning at every ignition.
-Setup     : SPECIAL - Arduino #1 on the PC USB (data cable) = COM6 (config SENDER_PORT);
-            Dashboard UNPLUGGED; CANable COM5 open first so frames get an ACK.
+Setup     : B with the powered hub - Arduino #1 on config.SENDER_PORT (COM4); the Dashboard
+            may stay connected (it ACKs too); CANable COM5 open first.
 Steps     : 1. Drain old frames.
             2. t0 = open the sender's COM port (DTR resets the Arduino = "power-on").
             3. t1 = first 0x123 that left after the reset; then count frames for 1 s.
@@ -20,9 +20,8 @@ import config
 import frames
 import pytest
 
-pytestmark = pytest.mark.special                           # special wiring (see header)
+pytestmark = pytest.mark.setup_b                           # Arduino #1 on the hub (config.SENDER_PORT)
 
-SENDER_PORT = "COM6"      # Arduino #1 on PC USB, socket 1-4, for THIS test only (not the Dashboard!)
 LIMIT_S = 2.0             # REQ-004: first 0x123 within 2 s after power-up
 
 def test_sender_startup_time(can_bus):
@@ -34,7 +33,7 @@ def test_sender_startup_time(can_bus):
     # ASSUMPTION: a reset via the COM port is not a true power-on (the bootloader waits first)
     #             -> the measured time is probably a bit LONGER than a real power-on
     t0 = time.time()
-    sender = serial.Serial(SENDER_PORT, 115200)
+    sender = serial.Serial(config.SENDER_PORT, config.SENDER_BAUD)
 
     # Wait for the first 0x123 after the reset (give up after 5 s)
     first, t1 = None, None
