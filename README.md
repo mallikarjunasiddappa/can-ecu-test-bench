@@ -70,12 +70,12 @@ manual checks and not part of this code.)
 | `vehicle.dbc` | DBC for the bench network: nodes, message 0x123 `VehicleSpeed_Msg` (AliveCounter, VehicleSpeed 0–250 km/h, Checksum) and named values 254 `Error` / 255 `NotAvailable` |
 | `frames.py` | Builds valid 0x123 frames (and `damage_checksum(frame)`: fault injection by signal name): `checksum()`, `speed_frame(speed, counter)` (hand-built), `speed_frames(speed, strict=True)` → 16 DBC-built frames for `send_periodic`; `speed_frame_dbc(speed, counter, strict=True)` builds the same frame from `vehicle.dbc` by signal name (`strict=False` for fault injection, e.g. speed 251) |
 | `analyze_trace.py` | Offline trace analysis: reads a Vector `.asc` trace (e.g. recorded with `python -m can.logger -i slcan -c COM5 -b 500000 -f logs/trace.asc`), decodes 0x123 with `vehicle.dbc` and checks checksum (REQ-012), alive counter (REQ-011) and cycle time 90–110 ms (REQ-002); exit code 1 if errors. Red checks on a damaged copy: 1 bad checksum → 1 error; + 1 deleted frame → 3 errors (CHECKSUM, COUNTER, GAP) |
-| `pytest.ini` | `testpaths = tests`: plain `python -m pytest` collects only `tests/` (107 items), never stray practice files |
+| `pytest.ini` | `testpaths = tests`: plain `python -m pytest` collects only `tests/` (109 items), never stray practice files |
 | `requirements.txt` | Pinned versions: pytest 9.1.1, pytest-html 4.2.0, pyserial 3.5, python-can 4.6.1 |
 
 ## Tests
 
-**Test layout:** `tests/unit/` = no hardware (5 files, 60 items, ~3 s — `python -m pytest tests/unit`), `tests/bench/` = needs the CAN bench (28 files, 47 items). All 107 items: `python -m pytest`.
+**Test layout:** `tests/unit/` = no hardware (5 files, 60 items, ~3 s — `python -m pytest tests/unit`), `tests/bench/` = needs the CAN bench (29 files, 49 items). All 109 items: `python -m pytest`.
 
 **Regression suite (15 files, 53 test items + 1 long run)** — file names follow `test_tc<ID>_<what_it_checks>.py`; every file starts with a header (requirement, purpose, setup, steps, pass criteria, history)
 
@@ -92,6 +92,7 @@ manual checks and not part of this code.)
 | `test_unit_damage_checksum.py` | — | Unit test, no hardware: `frames.damage_checksum()` changes only the Checksum signal (+1, found via the DBC) for 5 speeds × 3 counters (15 cases). Red check `+ 0` → 15 failed |
 | `test_tc08_one_terminator_missing.py` | TC-08 | One terminator removed (118.7 Ω instead of 60 Ω), bench powered: 10 s at the tester and the Dashboard → still 101 frames, 0 errors = **latent fault** on a short bus; refitted (59.9 Ω) → same result. Run twice by hand (J1 off / on); only the Ω measurement tells the difference (REQ-006, REQ-009) |
 | `test_tc09_bitrate_mismatch_at_tester.py` | TC-09 | Tester at 250 kbit/s on a 500 kbit/s bus → 0 valid frames; the other two nodes are not disturbed (Dashboard LOST 0); back at 500 kbit/s → recovery (REQ-005, REQ-009) |
+| `test_tc10_can_h_l_swapped_at_tester.py` | TC-10 | CAN-H/CAN-L swapped at the CANable: Ω unchanged (59.9 / 60.2 — an ohmmeter cannot find a swap); the tester reads L − H, so every dominant bit looks recessive → blind (0 frames) while the ECUs stay perfect; restored → 100 frames. `fault` (`special`) + `recovery` (`setup_b`). Exploration: the swapped tester transmitting → no effect seen at the Dashboard (bus-level errors not measurable) |
 | `test_tc11_open_can_l_at_tester.py` | TC-11 | CAN-L wire open at the CANable (120.1 Ω at module #2): the tester is blind (0 valid, 0 damaged) while Arduino #1 ↔ Dashboard stay perfect; reconnected → 101 frames. Two tests: `fault` (marker `special`) and `recovery` (`setup_b`); red check = fault test on normal wiring → "100 valid 0x123 - is CAN-L really open?" |
 | `test_tc16_two_ids_cycle_time.py` | TC-16 | 0x123 timing unaffected by a second ID on the bus |
 | `test_tc18_fake_sender_masks_lost_ecu.py` | TC-18 | The real ECU dies while a fake still sends 0x123: naive fake → LOST after 301 ms (E2E protects); smart fake (DBC-built) → 100 km/h shown, no warning (masking, OBS-002 on the bench) |
@@ -123,7 +124,7 @@ purpose to prove the test can fail with a clear message, then restored.
 
 ## Results so far
 
-- 26 test cases in the test-case workbook: **23 Pass, 0 Fail, 3 Not Run** (wiring-fault, .asc logging and bus-side checks still to do).
+- 26 test cases in the test-case workbook: **24 Pass, 0 Fail, 2 Not Run** (still to do: TC-06 bus-side timeout, TC-07 .asc logging).
 - **Full regression 2026-10-27 after the DBC migration: 82 / 82 passed** — Setup A + unit 74 (251.6 s), Setup B 6 (48.4 s), TC-05 start-up 1 (1.505 s), TC-23 long run 1 (165.1 s). Every test builds and checks 0x123 through `vehicle.dbc` by signal name; no test reads or writes a byte position.
 - **3 product defects found by these tests and closed after retest:**
   - **DEF-001** — no timeout detection, stale speed stayed on screen → fixed in v0.2.
@@ -169,10 +170,11 @@ pip install -r requirements.txt
 python -m pytest -m unit                         # no hardware: DBC, frame builder, UDS simulator (60 tests, ~3 s)
 python -m pytest -m smoke                        # bench check: Dashboard boots with the expected firmware
 python -m pytest -m "setup_a and not long"       # Setup A quick regression (32 tests)
-python -m pytest -m "setup_b and not long"       # Setup B (10 tests)
+python -m pytest -m "setup_b and not long"       # Setup B (11 tests)
 python -m pytest -m special -k tc05              # TC-05 start-up (special wiring, see its header)
 python -m pytest -m special -k tc12 -s           # TC-12 burst after ACK loss (Arduino #1 ON, Dashboard unplugged)
 python -m pytest -m special -k tc11 -s           # TC-11 fault: CAN-L wire OPEN at the CANable (power off to change it)
+python -m pytest -m special -k tc10 -s           # TC-10 fault: CAN-H / CAN-L SWAPPED at the CANable (power off to change it)
 python -m pytest -m "setup_a and long"           # TC-23 long run (160 s)
 python -m pytest -m "setup_b and long"           # TC-03 long run (3 min)
 python -m pytest -m unit -v --html=reports/report.html   # HTML report (any selection)
@@ -185,12 +187,12 @@ Every test file carries a marker (`pytestmark = …`), registered in `pytest.ini
 |---|---|---|
 | `unit` | none — pure Python / virtual CAN bus | 60 |
 | `setup_a` | Arduino #1 OFF — Python sends 0x123 via the CANable | 33 (incl. smoke and the long run) |
-| `setup_b` | Arduino #1 ON | 11 (incl. the TC-03 long run) |
-| `special` | Dashboard unplugged; TC-05: Arduino #1 on PC USB (COM6); TC-12: Arduino #1 ON | 3 (TC-05, TC-12, TC-11 fault) — run one at a time; TC-11 fault: CAN-L open at the CANable |
+| `setup_b` | Arduino #1 ON | 12 (incl. the TC-03 long run) |
+| `special` | Dashboard unplugged; TC-05: Arduino #1 on PC USB (COM6); TC-12: Arduino #1 ON | 4 (TC-05, TC-12, TC-11 fault, TC-10 fault) — run one at a time; TC-11/TC-10 fault: wiring changed at the CANable |
 | `long` | > 1 min | 2 (TC-23 long run, Setup A; TC-03 long run, Setup B) |
 | `smoke` | Setup A | 1 |
 
-unit + setup_a + setup_b + special = 107 = all tests.
+unit + setup_a + setup_b + special = 109 = all tests.
 
 Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 
