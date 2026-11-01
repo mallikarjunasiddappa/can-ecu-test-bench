@@ -70,12 +70,13 @@ manual checks and not part of this code.)
 | `vehicle.dbc` | DBC for the bench network: nodes, message 0x123 `VehicleSpeed_Msg` (AliveCounter, VehicleSpeed 0–250 km/h, Checksum) and named values 254 `Error` / 255 `NotAvailable` |
 | `frames.py` | Builds valid 0x123 frames (and `damage_checksum(frame)`: fault injection by signal name): `checksum()`, `speed_frame(speed, counter)` (hand-built), `speed_frames(speed, strict=True)` → 16 DBC-built frames for `send_periodic`; `speed_frame_dbc(speed, counter, strict=True)` builds the same frame from `vehicle.dbc` by signal name (`strict=False` for fault injection, e.g. speed 251) |
 | `analyze_trace.py` | Offline trace analysis: reads a Vector `.asc` trace (e.g. recorded with `python -m can.logger -i slcan -c COM5 -b 500000 -f logs/trace.asc`), decodes 0x123 with `vehicle.dbc` and checks checksum (REQ-012), alive counter (REQ-011) and cycle time 90–110 ms (REQ-002); exit code 1 if errors. Red checks on a damaged copy: 1 bad checksum → 1 error; + 1 deleted frame → 3 errors (CHECKSUM, COUNTER, GAP) |
-| `pytest.ini` | `testpaths = tests`: plain `python -m pytest` collects only `tests/` (110 items), never stray practice files |
+| `bus_load.py` | Bus load from frame transmission time: builds each 0x123 frame bit by bit (SOF, 11-bit ID, control, data, **CRC-15**, **stuff bits**, 13 fixed bits incl. interframe space). Bench: 120.8 bits = 242 µs per frame, 10 frames/s → **0.242 %**. Unit-tested (`test_unit_bus_load.py`: CRC-15 check value 0x059E, stuff-bit patterns, counter-0 frame = 121 bits; red check `run == 6` → 4 failed) |
+| `pytest.ini` | `testpaths = tests`: plain `python -m pytest` collects only `tests/` (117 items), never stray practice files |
 | `requirements.txt` | Pinned versions: pytest 9.1.1, pytest-html 4.2.0, pyserial 3.5, python-can 4.6.1 |
 
 ## Tests
 
-**Test layout:** `tests/unit/` = no hardware (5 files, 60 items, ~3 s — `python -m pytest tests/unit`), `tests/bench/` = needs the CAN bench (30 files, 50 items). All 110 items: `python -m pytest`.
+**Test layout:** `tests/unit/` = no hardware (6 files, 67 items, ~3 s — `python -m pytest tests/unit`), `tests/bench/` = needs the CAN bench (30 files, 50 items). All 117 items: `python -m pytest`.
 
 **Regression suite (15 files, 53 test items + 1 long run)** — file names follow `test_tc<ID>_<what_it_checks>.py`; every file starts with a header (requirement, purpose, setup, steps, pass criteria, history)
 
@@ -169,7 +170,7 @@ Next: DTCs (0x19 / 0x14) linked to the 0x123 timeout, security access (0x27), se
 ```bash
 pip install -r requirements.txt
 # edit config.py: CAN_CHANNEL (CANable) and DASHBOARD_PORT (Dashboard Arduino)
-python -m pytest -m unit                         # no hardware: DBC, frame builder, UDS simulator (60 tests, ~3 s)
+python -m pytest -m unit                         # no hardware: DBC, frame builder, UDS simulator (67 tests, ~3 s)
 python -m pytest -m smoke                        # bench check: Dashboard boots with the expected firmware
 python -m pytest -m "setup_a and not long"       # Setup A quick regression (32 tests)
 python -m pytest -m "setup_b and not long"       # Setup B (13 tests, incl. TC-05 and TC-06: they reset Arduino #1 via COM4)
@@ -186,18 +187,18 @@ Every test file carries a marker (`pytestmark = …`), registered in `pytest.ini
 
 | Marker | Bench setup | Tests |
 |---|---|---|
-| `unit` | none — pure Python / virtual CAN bus | 60 |
+| `unit` | none — pure Python / virtual CAN bus | 67 |
 | `setup_a` | Arduino #1 OFF — Python sends 0x123 via the CANable | 33 (incl. smoke and the long run) |
 | `setup_b` | Arduino #1 ON — since 2026-10-31 on the powered hub, port 4 = `config.SENDER_PORT` COM4 (TC-06 resets it through that port) | 14 (incl. the TC-03 long run) |
 | `special` | wiring/setup changed by hand — TC-12: Dashboard unplugged; TC-11 / TC-10 fault: CAN-L open / H-L swapped at the CANable | 3 (TC-12, TC-11 fault, TC-10 fault) — run one at a time |
 | `long` | > 1 min | 2 (TC-23 long run, Setup A; TC-03 long run, Setup B) |
 | `smoke` | Setup A | 1 |
 
-unit + setup_a + setup_b + special = 110 = all tests.
+unit + setup_a + setup_b + special = 117 = all tests.
 
 Close the Arduino Serial Monitor before running (it locks the Dashboard port).
 
-**CI (GitHub Actions):** `.github/workflows/unit-tests.yml` runs `python -m pytest -m unit` (60 tests, ~3 s) on a fresh
+**CI (GitHub Actions):** `.github/workflows/unit-tests.yml` runs `python -m pytest -m unit` (67 tests, ~3 s) on a fresh
 Ubuntu runner with Python 3.13 on every push to `main` and on every pull request; the badge at the top shows the
 latest result. Bench tests need the hardware and run locally. Red check (2026-10-30): a PR with `damage_checksum`
 adding 0 instead of 1 → 15 failed, exit code 1, check ❌ → PR closed without merge.
