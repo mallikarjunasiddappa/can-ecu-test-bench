@@ -25,35 +25,43 @@ pytestmark = pytest.mark.setup_b                           # Arduino #1 ON
 
 DURATION_S = 5
 PYTHON_SPEED = 100      # Arduino #1 sends 50 km/h on 0x123; Python sends 100 km/h on the SAME ID
+FAKE_OFFSET = 8         # fake counter = real counter + 8: never "the next one" (the lucky case is TC-26)
 
 
-def fake_frames(kind):
+def real_counter_now(can_bus):
+    """AliveCounter of the next frame from the real ECU (Arduino #1)."""
+    helpers.drain(can_bus)
+    end = time.time() + 1.0
+    while time.time() < end:
+        msg = can_bus.recv(timeout=0.2)
+        if msg is not None and msg.arbitration_id == config.SPEED_MSG_ID:
+            return frames.decode_speed(msg.data)["AliveCounter"]
+    raise AssertionError("no 0x123 from Arduino #1 within 1 s - is it ON?")
+
+
+def fake_frames(kind, start_counter):
     if kind == "bad_e2e":                       # naive fake: counter 0, checksum 0
         return can.Message(arbitration_id=config.SPEED_MSG_ID,
                            data=[0x00, PYTHON_SPEED, 0, 0, 0, 0, 0, 0], is_extended_id=False)
-    return frames.speed_frames(PYTHON_SPEED)    # smart fake: correct checksum + its own counter
+    msgs = frames.speed_frames(PYTHON_SPEED)    # smart fake: correct checksum, counters 0..15
+    return msgs[start_counter:] + msgs[:start_counter]   # rotated: the first frame has start_counter
 
 
 @pytest.mark.parametrize("kind", ["bad_e2e", "good_e2e"])
 def test_duplicate_sender_is_detected(can_bus, dashboard, kind):
-    helpers.drain(can_bus)      # drain old frames
-    task = can_bus.send_periodic(fake_frames(kind), config.CYCLE_TIME_S)
+    start = (real_counter_now(can_bus) + FAKE_OFFSET) % 16
+    task = can_bus.send_periodic(fake_frames(kind, start), config.CYCLE_TIME_S)
     dashboard.reset_input_buffer()
-
-    lines = []                                         # read continuously (many error lines!)
-    end = time.time() + DURATION_S
-    while time.time() < end:
-        line = dashboard.readline().decode(errors="ignore").strip()
-        if line:
-            lines.append(line)
+    lines = helpers.read_lines_for(dashboard, DURATION_S)     # many error lines - read continuously
     task.stop()
 
     text = "\n".join(lines)
     speeds = [int(s) for s in re.findall(r"Speed = (\d+) km/h", text)]
     cs_err = text.count("CHECKSUM ERROR")
     ctr_err = text.count("COUNTER ERROR")
-    print(f"\n[{kind}] speed lines: {len(speeds)} (50: {speeds.count(50)}, 100: {speeds.count(PYTHON_SPEED)})"
-          f"  CHECKSUM ERROR: {cs_err}  COUNTER ERROR: {ctr_err}  LOST: {text.count('SPEED SIGNAL LOST')}")
+    print(f"\n[{kind}] fake starts at counter {start}; speed lines: {len(speeds)} (50: {speeds.count(50)}, "
+          f"100: {speeds.count(PYTHON_SPEED)})  CHECKSUM ERROR: {cs_err}  COUNTER ERROR: {ctr_err}  "
+          f"LOST: {text.count('SPEED SIGNAL LOST')}")
     print("First 6 lines:", lines[:6])
 
     assert speeds.count(PYTHON_SPEED) == 0, "fake value 100 km/h was DISPLAYED"
