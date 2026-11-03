@@ -15,7 +15,6 @@ History   : Run 1 on Dashboard v0.2 failed 4/4 -> DEF-002 (0xFB-0xFF shown as re
 """
 import re
 import time
-import can
 import pytest
 import config
 import frames

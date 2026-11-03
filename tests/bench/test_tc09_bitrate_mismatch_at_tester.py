@@ -17,6 +17,7 @@ import can
 import pytest
 import config
 import frames
+import helpers
 
 pytestmark = pytest.mark.setup_b                           # Arduino #1 ON
 
@@ -45,23 +46,18 @@ def valid_speed_frames(bitrate, seconds):
     return good, other
 
 
-def dashboard_text(dashboard):
-    """Everything the Dashboard printed since the last reset_input_buffer()."""
-    return dashboard.read(dashboard.in_waiting).decode(errors="ignore")
-
-
 def test_tc09_wrong_bitrate_then_recovery(dashboard):
     dashboard.reset_input_buffer()
     time.sleep(1)
-    before = dashboard_text(dashboard)                     # step 1: CANable closed
+    before = helpers.dashboard_text(dashboard)                     # step 1: CANable closed
 
     dashboard.reset_input_buffer()
     fault_good, fault_other = valid_speed_frames(WRONG_BITRATE, FAULT_S)
-    fault = dashboard_text(dashboard)                      # step 2: wrong bitrate
+    fault = helpers.dashboard_text(dashboard)                      # step 2: wrong bitrate
 
     dashboard.reset_input_buffer()
     rec_good, rec_other = valid_speed_frames(config.CAN_BITRATE, RECOVER_S)
-    rec = dashboard_text(dashboard)                        # step 3: back to 500k
+    rec = helpers.dashboard_text(dashboard)                        # step 3: back to 500k
 
     print(f"\nbefore  : Speed=50 x{before.count('Speed = 50')}")
     print(f"fault   : tester valid 0x123 {len(fault_good)}, other frames {fault_other} | Dashboard: "

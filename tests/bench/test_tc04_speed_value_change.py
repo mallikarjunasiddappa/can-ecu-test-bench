@@ -17,30 +17,22 @@ import config
 import time
 import frames
 import pytest
+import helpers
 
 pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
-
-def read_line_for(dashboard, seconds):
-    lines = []
-    end = time.time() + seconds
-    while time.time() < end:
-        line = dashboard.readline().decode(errors="ignore").strip()
-        if line:
-            lines.append(line)
-    return lines
 
 def test_speed_change_50_to_100(can_bus, dashboard):
     # Phase 1: 50 km/h, settle, then read 1.0 s
     task = can_bus.send_periodic(frames.speed_frames(50), config.CYCLE_TIME_S)
     time.sleep(1)
     dashboard.reset_input_buffer()
-    before = read_line_for(dashboard, 1.0)
+    before = helpers.read_lines_for(dashboard, 1.0)
 
     # Change: same task, new data -> counter and timing continue (no COUNTER ERROR)
     task.modify_data(frames.speed_frames(100))
 
     # Phase 2: read 1.5 s
-    after = read_line_for(dashboard, 1.5)
+    after = helpers.read_lines_for(dashboard, 1.5)
     task.stop()
 
     print("\nBEFORE:\n" + "\n".join(before) + "\nAFTER:\n" + "\n".join(after))

@@ -14,14 +14,14 @@ History   : manual runs 2026-09-30 and 2026-10-08 with can.viewer (PASS) -> auto
 import time
 import pytest
 import frames
+import helpers
 
 pytestmark = pytest.mark.setup_b                           # Arduino #1 ON
 
 MSG = frames.DB.get_message_by_name("VehicleSpeed_Msg")    # the expected values come from the DBC
 
 def test_tc02_id_dlc_and_standard_id(can_bus):
-    while can_bus.recv(timeout=0.01) is not None:          # drain frames queued before the test
-        pass
+    helpers.drain(can_bus)          # drain frames queued before the test
 
     received = []
     end = time.time() + 1.0

@@ -14,6 +14,7 @@ History   : first run "0 frames" -> ENV-003 (sender silent on a charge-only cabl
 import time
 import config
 import pytest
+import helpers
 
 pytestmark = pytest.mark.setup_b                           # Arduino #1 ON
 
@@ -22,9 +23,7 @@ MIN_MS, MAX_MS = 90, 110          # REQ-002: 100 ms ± 10 %
 
 def test_sender_cycle_time(can_bus):
     # Drain: frames buffered since the bus was opened have old timestamps
-    drained = 0
-    while can_bus.recv(timeout=0.01) is not None:
-        drained += 1
+    drained = helpers.drain(can_bus)
 
     # Listen 5 s, keep only 0x123
     stamps = []

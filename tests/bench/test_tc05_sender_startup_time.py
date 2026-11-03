@@ -19,6 +19,7 @@ import serial
 import config
 import frames
 import pytest
+import helpers
 
 pytestmark = pytest.mark.setup_b                           # Arduino #1 on the hub (config.SENDER_PORT)
 
@@ -26,8 +27,7 @@ LIMIT_S = 2.0             # REQ-004: first 0x123 within 2 s after power-up
 
 def test_sender_startup_time(can_bus):
     # Bus is already open (fixture) -> CANable ACKs. Throw away old frames.
-    while can_bus.recv(timeout=0.01) is not None:
-        pass
+    helpers.drain(can_bus)
 
     # "Power-on": opening the sender's COM port resets Arduino #1
     # ASSUMPTION: a reset via the COM port is not a true power-on (the bootloader waits first)

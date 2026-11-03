@@ -14,22 +14,13 @@ Pass when : - 1-3 COUNTER ERROR lines, all "expected 7, got 8" (15 -> 0 is NOT a
 """
 import config
 import time
-import re
 import frames
 import pytest
+import helpers
 
 pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
 
 # copy your read_line_for helper from test 3 here
-def read_line_for(dashboard, seconds):
-    lines = []
-    end = time.time() + seconds
-    while time.time() < end:
-        line = dashboard.readline().decode(errors="ignore").strip()
-        if line:
-            lines.append(line)
-    return lines
-
 def test_counter_jump_detected(can_bus, dashboard):
     # Phase 1: skip sender from the start (no counter 7), let the Dashboard settle
     skip_frames = [m for m in frames.speed_frames(50) if frames.decode_speed(m.data)["AliveCounter"] != 7]
@@ -39,7 +30,7 @@ def test_counter_jump_detected(can_bus, dashboard):
     dashboard.reset_input_buffer()
 
     # Phase 2: read 3.0 s
-    lines = read_line_for(dashboard, 3.0)
+    lines = helpers.read_lines_for(dashboard, 3.0)
     task.stop()
 
     print("\n" + "\n".join(lines))      # temporary: see the real lines first

@@ -11,7 +11,6 @@ Pass when : "Speed = <value> km/h" is among the lines (expected value calculated
 History   : 254/255 were in the list until REQ-010 made them special values -> changed to 249/250.
 """
 import time
-import can
 import pytest
 import config
 import frames

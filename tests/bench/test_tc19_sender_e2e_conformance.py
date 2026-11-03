@@ -14,6 +14,7 @@ import time
 import config
 import frames
 import pytest
+import helpers
 
 pytestmark = pytest.mark.setup_b                           # Arduino #1 ON
 
@@ -21,8 +22,7 @@ DURATION_S = 3      # ~30 frames = about 2 full counter cycles (0..15)
 
 
 def test_sender_counter_and_checksum(can_bus):
-    while can_bus.recv(timeout=0.01) is not None:          # drain old frames
-        pass
+    helpers.drain(can_bus)          # drain old frames
 
     received = []                                         # raw payloads of every 0x123
     end = time.time() + DURATION_S

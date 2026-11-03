@@ -17,6 +17,7 @@ import time
 import pytest
 import config
 import frames
+import helpers
 
 pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
 
@@ -34,21 +35,12 @@ CASES = [
 ]
 IDS = ["249_valid", "250_last_valid", "251_first_invalid", "253_out_of_range", "FE_error", "FF_not_available"]
 
-def read_line_for(dashboard, seconds):
-    lines = []
-    end = time.time() + seconds
-    while time.time() < end:
-        line = dashboard.readline().decode(errors="ignore").strip()
-        if line:
-            lines.append(line)
-    return lines
-
 @pytest.mark.parametrize("raw, expected", CASES, ids=IDS)
 def test_speed_boundary(can_bus, dashboard, raw, expected):
     task = can_bus.send_periodic(frames.speed_frames(raw, strict=False), config.CYCLE_TIME_S)   # crosses the 250 boundary on purpose
     time.sleep(1)
     dashboard.reset_input_buffer()
-    lines = read_line_for(dashboard, 1.0)
+    lines = helpers.read_lines_for(dashboard, 1.0)
     task.stop()
     print(f"\nsent {raw} (0x{raw:02X}) -> {len(lines)} lines, first: {lines[:1]}")
 

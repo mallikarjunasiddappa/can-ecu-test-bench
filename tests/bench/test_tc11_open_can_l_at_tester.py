@@ -11,53 +11,32 @@ Pass when : fault    - tester 0 valid and 0 damaged 0x123; Dashboard Speed = 50 
             recovery - tester >= 90 valid, 0 damaged; Dashboard Speed = 50 >= 80, no errors
 History   : v1 (2026-10-09) assumed a 2-node bench ("Send error" at the sender) - outdated.
 """
-import time
+
 import pytest
-import config
-import frames
+import helpers
 
 MEASURE_S = 10.0
 
 
-def measure(can_bus, dashboard, seconds):
-    """Listen at the tester and the Dashboard at the same time; return (valid, damaged, dashboard text)."""
-    while can_bus.recv(timeout=0.01) is not None:          # drain old frames
-        pass
-    dashboard.reset_input_buffer()
-    good, bad = [], 0
-    end = time.time() + seconds
-    while time.time() < end:
-        msg = can_bus.recv(timeout=0.2)
-        if msg is None or msg.arbitration_id != config.SPEED_MSG_ID:
-            continue
-        if msg.dlc == 8 and frames.decode_speed(msg.data)["Checksum"] == frames.checksum(msg.data):
-            good.append(msg)
-        else:
-            bad += 1
-    text = dashboard.read(dashboard.in_waiting).decode(errors="ignore")
+def print_result(good, bad, text):
     print(f"\ntester   : valid 0x123 {len(good)}, damaged {bad}")
     print(f"dashboard: Speed=50 x{text.count('Speed = 50')}, LOST {text.count('SIGNAL LOST')}, "
           f"CHECKSUM {text.count('CHECKSUM ERROR')}, COUNTER {text.count('COUNTER ERROR')}")
-    return good, bad, text
-
-
-def dashboard_ok(text):
-    assert text.count("Speed = 50") >= 80, "Dashboard did not show 50 km/h continuously"
-    assert text.count("SIGNAL LOST") == 0, "SIGNAL LOST at the Dashboard"
-    assert text.count("CHECKSUM ERROR") + text.count("COUNTER ERROR") == 0, "E2E errors at the Dashboard"
 
 
 @pytest.mark.special                                       # CAN-L wire OPEN at the CANable
 def test_tc11_fault_can_l_open(can_bus, dashboard):
-    good, bad, text = measure(can_bus, dashboard, MEASURE_S)
+    good, bad, text = helpers.measure(can_bus, dashboard, MEASURE_S)
+    print_result(good, bad, text)
     assert len(good) == 0, f"tester received {len(good)} valid 0x123 - is CAN-L really open?"
     assert bad == 0, f"tester received {bad} damaged 0x123"
-    dashboard_ok(text)
+    helpers.assert_dashboard_ok(text)
 
 
 @pytest.mark.setup_b                                       # normal wiring
 def test_tc11_recovery_can_l_reconnected(can_bus, dashboard):
-    good, bad, text = measure(can_bus, dashboard, MEASURE_S)
+    good, bad, text = helpers.measure(can_bus, dashboard, MEASURE_S)
+    print_result(good, bad, text)
     assert len(good) >= 90, f"only {len(good)} valid 0x123 in {MEASURE_S} s"
     assert bad == 0, f"tester received {bad} damaged 0x123"
-    dashboard_ok(text)
+    helpers.assert_dashboard_ok(text)

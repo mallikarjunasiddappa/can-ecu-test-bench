@@ -15,6 +15,7 @@ History   : replaces the manual script cycle_check.py (Run 4 2026-10-09: 1791 fr
 import time
 import pytest
 import config
+import helpers
 
 pytestmark = [pytest.mark.setup_b, pytest.mark.long]       # Arduino #1 ON, 3 min - not in the quick regression
 
@@ -24,8 +25,7 @@ MIN_MS, MAX_MS = 90, 110                                   # REQ-002: 100 ms +-1
 
 
 def test_tc03_cycle_time_over_3_minutes(can_bus):
-    while can_bus.recv(timeout=0.01) is not None:          # drain frames queued before the test
-        pass
+    helpers.drain(can_bus)          # drain frames queued before the test
     end_warm_up = time.time() + WARM_UP_S
     while time.time() < end_warm_up:                       # skip the start-up burst (TC-12)
         can_bus.recv(timeout=0.1)

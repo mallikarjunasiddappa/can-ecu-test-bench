@@ -15,23 +15,12 @@ History   : Run 1 on Dashboard v0.1 failed -> DEF-001 (no timeout detection, sta
 """
 import re
 import time
-import can
 import config
 import frames
 import pytest
+import helpers
 
 pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
-
-
-def read_lines_for(dashboard, seconds):
-    """Collect every line the ECU prints during 'seconds'."""
-    lines = []
-    end = time.time() + seconds
-    while time.time() < end:
-        line = dashboard.readline().decode(errors="ignore").strip()
-        if line:
-            lines.append(line)
-    return lines
 
 
 def test_tc13_speed_signal_timeout(can_bus, dashboard):
@@ -40,15 +29,15 @@ def test_tc13_speed_signal_timeout(can_bus, dashboard):
     task = can_bus.send_periodic(msg, config.CYCLE_TIME_S)
     time.sleep(1)
     dashboard.reset_input_buffer()
-    before = read_lines_for(dashboard, 1.0)
+    before = helpers.read_lines_for(dashboard, 1.0)
 
     # Step 2: sender ECU lost -> stop sending 0x123
     task.stop()
-    during = read_lines_for(dashboard, 2.0)
+    during = helpers.read_lines_for(dashboard, 2.0)
 
     # Step 3: sender ECU back -> start sending again
     task = can_bus.send_periodic(msg, config.CYCLE_TIME_S)
-    after = read_lines_for(dashboard, 1.0)
+    after = helpers.read_lines_for(dashboard, 1.0)
     task.stop()
 
     print("\nBEFORE:", before, "\nDURING:", during, "\nAFTER:", after)

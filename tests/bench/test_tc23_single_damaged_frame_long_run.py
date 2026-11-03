@@ -14,18 +14,9 @@ import time
 import config
 import frames
 import pytest
+import helpers
 
 pytestmark = [pytest.mark.setup_a, pytest.mark.long]       # Setup A, 160 s - not in the quick regression
-
-
-def read_lines_for(dashboard, seconds):
-    lines = []
-    end = time.time() + seconds
-    while time.time() < end:
-        line = dashboard.readline().decode(errors="ignore").strip()
-        if line:
-            lines.append(line)
-    return lines
 
 
 def one_bad_in_16(speed):
@@ -40,7 +31,7 @@ def test_single_corrupt_frame_no_false_lost(can_bus, dashboard):
     time.sleep(1)                      # warm-up: Dashboard takes its reference
     dashboard.reset_input_buffer()     # throw away warm-up lines
     # Test: one damaged frame every 1.6 s, for 16 s (~10 damaged frames)
-    lines = read_lines_for(dashboard, 160.0)
+    lines = helpers.read_lines_for(dashboard, 160.0)
     task.stop()
 
     cs_err = [l for l in lines if "CHECKSUM ERROR" in l]

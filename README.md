@@ -71,6 +71,7 @@ manual checks and not part of this code.)
 | `frames.py` | Builds valid 0x123 frames (and `damage_checksum(frame)`: fault injection by signal name): `checksum()`, `speed_frame(speed, counter)` (hand-built), `speed_frames(speed, strict=True)` → 16 DBC-built frames for `send_periodic`; `speed_frame_dbc(speed, counter, strict=True)` builds the same frame from `vehicle.dbc` by signal name (`strict=False` for fault injection, e.g. speed 251) |
 | `analyze_trace.py` | Offline trace analysis: reads a Vector `.asc` trace (e.g. recorded with `python -m can.logger -i slcan -c COM5 -b 500000 -f logs/trace.asc`), decodes 0x123 with `vehicle.dbc` and checks checksum (REQ-012), alive counter (REQ-011) and cycle time 90–110 ms (REQ-002); exit code 1 if errors. Red checks on a damaged copy: 1 bad checksum → 1 error; + 1 deleted frame → 3 errors (CHECKSUM, COUNTER, GAP) |
 | `bus_load.py` | Bus load from frame transmission time: builds each 0x123 frame bit by bit (SOF, 11-bit ID, control, data, **CRC-15**, **stuff bits**, 13 fixed bits incl. interframe space). Bench: 120.8 bits = 242 µs per frame, 10 frames/s → **0.242 %**. Unit-tested (`test_unit_bus_load.py`: CRC-15 check value 0x059E, stuff-bit patterns, counter-0 frame = 121 bits; red check `run == 6` → 4 failed) |
+| `helpers.py` | Shared helpers for the bench tests (since 2026-11-03): `drain(can_bus)` (returns how many old frames were thrown away), `read_lines_for(dashboard, s)`, `dashboard_text(dashboard)`, `count(lines, text)`, `measure(can_bus, dashboard, s)` (tester + Dashboard at the same time) and `assert_dashboard_ok(text)`. Replaced 13 copies of the line reader, 11 drain loops, 6 serial reads, 2 `count()` and 2 `measure()` (+97 / −292 lines); fixtures stay in `conftest.py` |
 | `pytest.ini` | `testpaths = tests`: plain `python -m pytest` collects only `tests/` (117 items), never stray practice files |
 | `requirements.txt` | Pinned versions: pytest 9.1.1, pytest-html 4.2.0, pyserial 3.5, python-can 4.6.1 |
 
@@ -128,6 +129,7 @@ purpose to prove the test can fail with a clear message, then restored.
 
 - 26 test cases in the test-case workbook: **25 Pass, 0 Fail, 1 Not Run** (still to do: TC-07 .asc logging — waits for the 2nd CANable).
 - **Full regression R5, 2026-10-31: 108 / 108 passed** (all 110 tests except the two hand-wired fault tests TC-11 / TC-10, which ran the same day): unit 60 (2.9 s), Setup B 13 (122.9 s), TC-03 long 1 (183.4 s, 1788 frames, 98.7–102.9 ms), TC-12 1 (burst 3: counters 4, 3, 2), Setup A 32 (273.8 s), TC-23 long 1 (165.4 s, 100 damaged, 0 counter errors, 0 LOST). Logs `logs/R5_*.txt`.
+- **Regression R6, 2026-11-03, after the helpers refactoring:** Setup A 32/32, TC-23 long 1/1 (100 damaged, 0 / 0); Setup B 10/13 at first — TC-08, TC-16 and TC-03 long hit by **PC timestamp jitter** (outlier pairs summing to ~200 ms, ENV-005) and TC-20 `good_e2e` by **chance** (fake counter exactly one ahead = OBS-002, test defect being fixed) — all passed on rerun (TC-03 long 1788 frames, 96.5–104.4 ms). No failure caused by the refactoring.
 - Earlier: **full regression 2026-10-27 after the DBC migration: 82 / 82 passed** — Setup A + unit 74 (251.6 s), Setup B 6 (48.4 s), TC-05 start-up 1 (1.505 s), TC-23 long run 1 (165.1 s). Every test builds and checks 0x123 through `vehicle.dbc` by signal name; no test reads or writes a byte position.
 - **3 product defects found by these tests and closed after retest:**
   - **DEF-001** — no timeout detection, stale speed stayed on screen → fixed in v0.2.
@@ -209,6 +211,7 @@ green `unit` check; force pushes and deletion are blocked. The repository admin 
 
 - Ports hard-coded in `config.py`.
 - Function-scoped fixtures → ~2 s Arduino reset per test.
+- Cycle-time checks use **PC timestamps** (python-can slcan): a busy PC shows up as late/early pairs (ENV-005). Professional interfaces time-stamp in hardware; the candleLight firmware of the 2nd adapter also does.
 - One hand-built frame remains on purpose: the naive fake (`counter 0, checksum 0`) in TC-20, which must break the DBC rules; `speed_frame()` stays only as the reference in the DBC equivalence unit test.
 - The E2E checksum is a plain byte sum: it cannot detect bytes in the wrong position (shown by the DBC red check). Production E2E profiles use a CRC.
 - `.asc` traces are recorded by hand; automatic recording per test (REQ-008) is next. The CANable cannot record frames it sends itself (python-can slcan has no own-message receive), so Setup A traces need a second, listen-only interface (ordered).

@@ -11,24 +11,15 @@ Pass when : - at least 8 "Speed = 50 km/h" lines before
             - LOST reported after 301-350 ms (from config.TIMEOUT_MS)
 Red check : limit + 0 -> failed with "LOST after 301 ms (allowed 301-350)" = real reaction 301 ms.
 """
-import can
 import config 
 import frames
 import time
 import re
 import pytest
+import helpers
 
 pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
 
-
-def read_line_for(dashboard, seconds):
-    lines = []
-    end = time.time() + seconds
-    while time.time() < end:
-        line = dashboard.readline().decode(errors="ignore").strip()
-        if line:
-            lines.append(line)
-    return lines
 
 def test_signal_timeout(can_bus, dashboard):
     # Phase 1: sender alive
@@ -37,13 +28,13 @@ def test_signal_timeout(can_bus, dashboard):
     task = can_bus.send_periodic(frames.speed_frames(50), config.CYCLE_TIME_S)
     time.sleep(1)
     dashboard.reset_input_buffer()
-    before = read_line_for(dashboard, 1.0)
+    before = helpers.read_lines_for(dashboard, 1.0)
 
     # Phase 2: sender lost
     # TODO 2: stop the sender
 
     task.stop()
-    during = read_line_for(dashboard, 1.0)
+    during = helpers.read_lines_for(dashboard, 1.0)
 
     # Criterion 1
     # TODO 3: assert that "Speed = 50 km/h" is in before

@@ -20,18 +20,9 @@ import time
 import config
 import frames
 import pytest
+import helpers
 
 pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
-
-
-def read_lines_for(dashboard, seconds):
-    lines = []
-    end = time.time() + seconds
-    while time.time() < end:
-        line = dashboard.readline().decode(errors="ignore").strip()
-        if line:
-            lines.append(line)
-    return lines
 
 
 def real_frames(damaged):
@@ -48,20 +39,16 @@ def run(can_bus, dashboard, damaged, fake_ctr=None, seconds=16.0):
         fake = can_bus.send_periodic(frames.speed_frame_dbc(100, fake_ctr), 1.6)   # one fake per 16-frame loop
     time.sleep(1)                                    # warm-up
     dashboard.reset_input_buffer()
-    lines = read_lines_for(dashboard, seconds)
+    lines = helpers.read_lines_for(dashboard, seconds)
     if fake:
         fake.stop()
     real.stop()
     return lines
 
 
-def count(lines, text):
-    return len([l for l in lines if text in l])
-
-
 def test_tc24_two_damaged_in_a_row_gives_lost(can_bus, dashboard):
     lines = run(can_bus, dashboard, damaged=[5, 6])
-    cs, lost, rest = count(lines, "CHECKSUM ERROR"), count(lines, "SIGNAL LOST"), count(lines, "RESTORED")
+    cs, lost, rest = helpers.count(lines, "CHECKSUM ERROR"), helpers.count(lines, "SIGNAL LOST"), helpers.count(lines, "RESTORED")
     print(f"\n[TC-24] CHECKSUM ERROR {cs}  LOST {lost}  RESTORED {rest}")
     assert cs >= 16, "fault not injected"
     assert abs(lost - cs / 2) <= 1, "expected one LOST per double-damage event (REQ-011 v3, option A)"
@@ -70,17 +57,17 @@ def test_tc24_two_damaged_in_a_row_gives_lost(can_bus, dashboard):
 
 def test_tc25_damaged_plus_fake_wrong_counter(can_bus, dashboard):
     lines = run(can_bus, dashboard, damaged=[5], fake_ctr=13)
-    used = count(lines, "expected 5 or 6, got 13")
-    print(f"\n[TC-25] fake rejected ('expected 5 or 6, got 13') {used}  fake shown {count(lines, 'Speed = 100')}")
-    assert count(lines, "Speed = 100") == 0, "fake value DISPLAYED"
+    used = helpers.count(lines, "expected 5 or 6, got 13")
+    print(f"\n[TC-25] fake rejected ('expected 5 or 6, got 13') {used}  fake shown {helpers.count(lines, 'Speed = 100')}")
+    assert helpers.count(lines, "Speed = 100") == 0, "fake value DISPLAYED"
     assert used >= 8, "fake did not use up the tolerance as designed"
 
 
 def test_tc26_damaged_plus_lucky_fake(can_bus, dashboard):
     lines = run(can_bus, dashboard, damaged=[5], fake_ctr=6)
-    kicked = count(lines, "expected 7, got 6")
-    print(f"\n[TC-26] real ctr 6 rejected after lucky fake {kicked}  fake shown {count(lines, 'Speed = 100')}"
-          f"  LOST {count(lines, 'SIGNAL LOST')}")
-    assert count(lines, "Speed = 100") == 0, "lucky fake DISPLAYED"
+    kicked = helpers.count(lines, "expected 7, got 6")
+    print(f"\n[TC-26] real ctr 6 rejected after lucky fake {kicked}  fake shown {helpers.count(lines, 'Speed = 100')}"
+          f"  LOST {helpers.count(lines, 'SIGNAL LOST')}")
+    assert helpers.count(lines, "Speed = 100") == 0, "lucky fake DISPLAYED"
     assert kicked >= 8, "lucky fake was not accepted as expected"
-    assert count(lines, "SIGNAL LOST") == 0
+    assert helpers.count(lines, "SIGNAL LOST") == 0

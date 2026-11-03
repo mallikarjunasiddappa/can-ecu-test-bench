@@ -21,6 +21,7 @@ import serial
 import pytest
 import config
 import frames
+import helpers
 
 pytestmark = pytest.mark.setup_b                           # needs the hub: Arduino #1 on SENDER_PORT
 
@@ -34,8 +35,7 @@ def collect(can_bus, seconds, received):
 
 
 def test_tc06_sender_lost_timeout_seen_by_tester(can_bus, dashboard):
-    while can_bus.recv(timeout=0.01) is not None:          # drain old frames
-        pass
+    helpers.drain(can_bus)          # drain old frames
     dashboard.reset_input_buffer()
 
     received = []
@@ -48,7 +48,7 @@ def test_tc06_sender_lost_timeout_seen_by_tester(can_bus, dashboard):
     finally:
         sender.close()
 
-    text = dashboard.read(dashboard.in_waiting).decode(errors="ignore")
+    text = helpers.dashboard_text(dashboard)
 
     # step 4: the tester's own timeout monitor
     stamps = [m.timestamp for m in received]

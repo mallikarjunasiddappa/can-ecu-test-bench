@@ -19,6 +19,7 @@ import can
 import pytest
 import config
 import frames
+import helpers
 
 pytestmark = pytest.mark.setup_b                           # Arduino #1 ON
 
@@ -35,8 +36,7 @@ def fake_frames(kind):
 
 @pytest.mark.parametrize("kind", ["bad_e2e", "good_e2e"])
 def test_duplicate_sender_is_detected(can_bus, dashboard, kind):
-    while can_bus.recv(timeout=0.01) is not None:      # drain old frames
-        pass
+    helpers.drain(can_bus)      # drain old frames
     task = can_bus.send_periodic(fake_frames(kind), config.CYCLE_TIME_S)
     dashboard.reset_input_buffer()
 

@@ -18,17 +18,9 @@ import config
 import frames
 import time
 import pytest
+import helpers
 
 pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
-
-def read_line_for(dashboard, seconds):
-    lines = []
-    end = time.time() + seconds
-    while time.time() < end:
-      line = dashboard.readline().decode(errors="ignore").strip()
-      if line:
-        lines.append(line)
-    return lines
 
 def test_signal_recovery(can_bus, dashboard):
      # Phase 1: sender alive (1 s), then clear the buffer
@@ -39,14 +31,14 @@ def test_signal_recovery(can_bus, dashboard):
     # Phase 2: stop the sender, read 2.0 s  -> "during"
     task.stop()
     stop_time = time.time()
-    during = read_line_for(dashboard, 2.0)
+    during = helpers.read_lines_for(dashboard, 2.0)
     lost = [l for l in during if "SPEED SIGNAL LOST" in l]
     assert len(lost) == 1, f"expected 1 LOST line, got {lost}"
 
     # Phase 3: sender back, read 1.5 s -> "after"
     gap_ms = (time.time() - stop_time) * 1000     #calculate the real gap in ms:
     task = can_bus.send_periodic(frames.speed_frames(0x32), config.CYCLE_TIME_S)
-    after = read_line_for(dashboard, 1.5)
+    after = helpers.read_lines_for(dashboard, 1.5)
     # Criterion 2: exactly one RESTORED in after
     restored = [l for l in after if "SPEED SIGNAL RESTORED" in l]
     assert len(restored) == 1, f"expected 1 RESTORED line, got {restored}"

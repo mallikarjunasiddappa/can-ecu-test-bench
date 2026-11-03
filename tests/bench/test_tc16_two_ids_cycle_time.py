@@ -16,6 +16,7 @@ import time
 import can
 import pytest
 import config
+import helpers
 
 pytestmark = pytest.mark.setup_b                           # Arduino #1 ON
 
@@ -26,9 +27,7 @@ DURATION_S = 5
 @pytest.mark.parametrize("second_sender", [False, True], ids=["baseline", "with_0x200"])
 def test_two_senders_coexist(can_bus, dashboard, second_sender):
     # Drain old frames: CANable kept receiving while the dashboard fixture slept 2 s
-    old = 0
-    while can_bus.recv(timeout=0.01) is not None:
-        old += 1
+    old = helpers.drain(can_bus)
     print(f"\nDrained {old} old frames from the receive buffer")
     task = None
     if second_sender:                                  # only in the 2nd run: Python also sends 0x200
@@ -44,7 +43,7 @@ def test_two_senders_coexist(can_bus, dashboard, second_sender):
     if task:
         task.stop()
 
-    text = dashboard.read(dashboard.in_waiting).decode(errors="ignore")
+    text = helpers.dashboard_text(dashboard)
 
     assert len(stamps) >= DURATION_S * 9, f"only {len(stamps)} frames of 0x123 received"
     gaps_ms = [(b - a) * 1000 for a, b in zip(stamps, stamps[1:])]

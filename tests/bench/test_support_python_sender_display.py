@@ -10,7 +10,6 @@ Steps     : 1. Send 100 km/h every 100 ms (16 frames, alive counter 0..15).
 Pass when : "Speed = 100 km/h" is among the lines.
 """
 import time
-import can
 import config
 import frames
 import pytest

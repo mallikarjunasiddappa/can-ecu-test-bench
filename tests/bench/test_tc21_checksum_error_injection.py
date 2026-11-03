@@ -18,18 +18,9 @@ import time
 import config
 import frames
 import pytest
+import helpers
 
 pytestmark = pytest.mark.setup_a                           # Arduino #1 OFF, Python sends 0x123
-
-
-def read_lines_for(dashboard, seconds):
-    lines = []
-    end = time.time() + seconds
-    while time.time() < end:
-        line = dashboard.readline().decode(errors="ignore").strip()
-        if line:
-            lines.append(line)
-    return lines
 
 
 def bad_checksum_frames(speed):
@@ -42,17 +33,17 @@ def test_bad_checksum_rejected_then_recovery(can_bus, dashboard):
     task = can_bus.send_periodic(frames.speed_frames(0x32), config.CYCLE_TIME_S)
     time.sleep(1)
     dashboard.reset_input_buffer()
-    before = read_lines_for(dashboard, 1.0)
+    before = helpers.read_lines_for(dashboard, 1.0)
 
     # Phase 2: same sender, but every frame has a wrong checksum
     task.stop()
     task = can_bus.send_periodic(bad_checksum_frames(0x32), config.CYCLE_TIME_S)
-    during = read_lines_for(dashboard, 1.5)
+    during = helpers.read_lines_for(dashboard, 1.5)
 
     # Phase 3: good frames again
     task.stop()
     task = can_bus.send_periodic(frames.speed_frames(0x32), config.CYCLE_TIME_S)
-    after = read_lines_for(dashboard, 1.5)
+    after = helpers.read_lines_for(dashboard, 1.5)
     task.stop()
 
     print("\nBEFORE:", before[:3], "\nDURING:", during, "\nAFTER:", after[:4])
